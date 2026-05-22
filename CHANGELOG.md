@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Floating waveform indicator.** A small dark pill (140×40) appears near the bottom-center of the active screen while recording, with 16 white bars rippling to live mic input — same affordance as WisprFlow. Click-through, floats above all windows, follows the cursor to the active display in multi-monitor setups. Toggle in the menu or via `SHOW_INDICATOR` in `config.py`.
+- `Recorder.peak_level()` exposes the current mic RMS (0..1) for UI consumption.
+
 ## [0.1.0] — 2026-05-21
 
 ### Added

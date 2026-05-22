@@ -41,3 +41,15 @@ def test_recorder_constructs_without_starting() -> None:
     out = r.stop()
     assert isinstance(out, np.ndarray)
     assert out.size == 0
+    # Peak level on an idle recorder is zero.
+    assert r.peak_level() == 0.0
+
+
+def test_indicator_constructs_without_creating_window() -> None:
+    # AppKit imports work on macOS via PyObjC (shipped by rumps). We don't
+    # call start() — that requires a real run loop.
+    from susurro.audio import Recorder
+    from susurro.indicator import WaveformIndicator
+
+    ind = WaveformIndicator(Recorder())
+    assert ind is not None

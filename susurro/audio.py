@@ -30,17 +30,34 @@ class Recorder:
         self._chunks: deque[np.ndarray] = deque()
         self._lock = threading.Lock()
         self._recording = False
+        # Most recent block's RMS, scaled ~0..1 — read by the UI indicator.
+        self._current_level = 0.0
 
     @property
     def is_recording(self) -> bool:
         return self._recording
 
+    def peak_level(self) -> float:
+        """Return the most recent mic level (0..1) for UI consumption.
+
+        Updated by the audio callback at PortAudio's block rate (~750 Hz for
+        16 kHz mono with default blocksize). Reads are lock-free; the value
+        is a plain float and atomic on CPython.
+        """
+        return self._current_level
+
     def _callback(self, indata, frames, time, status) -> None:
         if status:
             logger.debug("input stream status: %s", status)
         with self._lock:
-            if self._recording:
+            recording = self._recording
+            if recording:
                 self._chunks.append(indata.copy())
+        if recording and indata.size > 0:
+            mono = indata.reshape(-1)
+            rms = float(np.sqrt(np.mean(mono * mono)))
+            # Speech RMS is usually 0.01..0.3 in float32. Scale + clamp for UI.
+            self._current_level = min(1.0, rms * 10.0)
 
     def start(self) -> None:
         if self._recording:
@@ -71,6 +88,7 @@ class Recorder:
             self._recording = False
             chunks = list(self._chunks)
             self._chunks.clear()
+        self._current_level = 0.0
         if self._stream is not None:
             try:
                 self._stream.stop()

@@ -34,6 +34,7 @@ HOTKEY = "alt_r"
 TYPE_DELAY = 0.005  # Seconds between keystrokes; lower = faster typing.
 PLAY_SOUNDS = True  # Subtle audio feedback on start/stop.
 SHOW_NOTIFICATIONS = True
+SHOW_INDICATOR = True  # Floating waveform pill near the bottom of the screen.
 
 # --- Paths ---
 HOME_DIR = Path.home() / ".susurro"

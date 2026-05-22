@@ -73,6 +73,8 @@ Menu bar icon reflects state:
 | 🔴 recording | Listening. Release the hotkey to transcribe. |
 | ⏳ processing | Transcribing on-device. Don't move the cursor. |
 
+While recording, a small dark **waveform pill** appears near the bottom-center of the active screen, with 16 white bars that ripple to your voice — same affordance as WisprFlow. It's click-through and floats above all other windows. Toggle it off via the *Show waveform indicator* menu item if you find it distracting.
+
 ## Configuration
 
 Edit `susurro/config.py`:
@@ -82,6 +84,7 @@ Edit `susurro/config.py`:
 - **`LANGUAGE`** — `None` for auto-detect, or pin to `"es"` / `"en"` to save ~100 ms per request.
 - **`INPUT_DEVICE`** — pick a specific mic. Run `python -m sounddevice` to list devices.
 - **`PLAY_SOUNDS`** — subtle audio feedback on record start/stop.
+- **`SHOW_INDICATOR`** — floating waveform pill near the bottom of the screen while recording.
 
 ## Performance
 

@@ -13,6 +13,7 @@ import rumps
 from . import config, permissions
 from .audio import MicrophoneUnavailable, Recorder
 from .hotkey import HotkeyListener
+from .indicator import WaveformIndicator
 from .logging_config import setup as setup_logging
 from .stt import Transcriber
 from .typer import insert
@@ -54,6 +55,7 @@ class SusurroApp(rumps.App):
         self.recorder = Recorder()
         self.transcriber = Transcriber()
         self.hotkey: HotkeyListener | None = None
+        self.indicator = WaveformIndicator(self.recorder)
 
         # Single-worker queue so transcriptions run one at a time, in order.
         self._jobs: queue.Queue = queue.Queue()
@@ -73,6 +75,7 @@ class SusurroApp(rumps.App):
             None,
             rumps.MenuItem("Insert via clipboard (Cmd+V)", callback=self._toggle_clipboard),
             rumps.MenuItem("Play feedback sounds", callback=self._toggle_sounds),
+            rumps.MenuItem("Show waveform indicator", callback=self._toggle_indicator),
             None,
             rumps.MenuItem("Copy last transcript", callback=self._copy_last),
             None,
@@ -93,6 +96,11 @@ class SusurroApp(rumps.App):
         ]
         self.menu["Insert via clipboard (Cmd+V)"].state = 1
         self.menu["Play feedback sounds"].state = 1 if config.PLAY_SOUNDS else 0
+        self.menu["Show waveform indicator"].state = 1 if config.SHOW_INDICATOR else 0
+
+        # The indicator timer polls the recorder for state and shows/hides itself.
+        if config.SHOW_INDICATOR:
+            self.indicator.start()
 
         # Warm the model in the background so the first real recording isn't slow.
         threading.Thread(target=self._warmup, daemon=True).start()
@@ -192,6 +200,14 @@ class SusurroApp(rumps.App):
         config.PLAY_SOUNDS = not config.PLAY_SOUNDS
         sender.state = 1 if config.PLAY_SOUNDS else 0
 
+    def _toggle_indicator(self, sender) -> None:
+        config.SHOW_INDICATOR = not config.SHOW_INDICATOR
+        sender.state = 1 if config.SHOW_INDICATOR else 0
+        if config.SHOW_INDICATOR:
+            self.indicator.start()
+        else:
+            self.indicator.stop()
+
     def _copy_last(self, _sender) -> None:
         if not self._last_text:
             return
@@ -213,6 +229,7 @@ class SusurroApp(rumps.App):
     def _quit(self, _sender) -> None:
         if self.hotkey is not None:
             self.hotkey.stop()
+        self.indicator.stop()
         rumps.quit_application()
 
     # --- helpers ---
