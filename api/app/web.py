@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory="app/templates")
 def home(request: Request, user: User | None = Depends(current_user_web)):
     """Tiny landing on the API host. The marketing site lives at susurro.live."""
     return templates.TemplateResponse(
-        "home.html", {"request": request, "user": user, "settings": get_settings()}
+        request, "home.html", {"user": user, "settings": get_settings()}
     )
 
 
@@ -37,7 +37,7 @@ def home(request: Request, user: User | None = Depends(current_user_web)):
 
 @router.get("/signin", response_class=HTMLResponse)
 def signin_page(request: Request):
-    return templates.TemplateResponse("signin.html", {"request": request, "purpose": "signin"})
+    return templates.TemplateResponse(request, "signin.html", {"purpose": "signin"})
 
 
 @router.post("/signin")
@@ -53,7 +53,7 @@ def signin_submit(
     session.refresh(link)
     verify_url = f"{get_settings().api_url}/auth/verify?token={link.token}"
     send_magic_link(email, verify_url, purpose="signin")
-    return templates.TemplateResponse("magic_sent.html", {"request": request, "email": email})
+    return templates.TemplateResponse(request, "magic_sent.html", {"email": email})
 
 
 @router.get("/auth/verify", response_class=HTMLResponse)
@@ -64,7 +64,7 @@ def signin_verify(
 ):
     link = consume_magic_link(session, token, purpose="signin")
     if link is None:
-        return templates.TemplateResponse("magic_expired.html", {"request": request})
+        return templates.TemplateResponse(request, "magic_expired.html", {})
     user = get_or_create_user(session, link.email)
     cookie = issue_session_cookie(user.id)
     resp = RedirectResponse("/dashboard", status_code=303)
@@ -84,7 +84,7 @@ def signin_verify(
 
 @router.get("/auth/desktop", response_class=HTMLResponse)
 def desktop_signin_page(request: Request):
-    return templates.TemplateResponse("signin.html", {"request": request, "purpose": "desktop_pair"})
+    return templates.TemplateResponse(request, "signin.html", {"purpose": "desktop_pair"})
 
 
 @router.post("/auth/desktop")
@@ -101,7 +101,7 @@ def desktop_signin_submit(
     verify_url = f"{get_settings().api_url}/auth/desktop/verify?token={link.token}"
     send_magic_link(email, verify_url, purpose="desktop_pair")
     return templates.TemplateResponse(
-        "magic_sent.html", {"request": request, "email": email, "desktop": True}
+        request, "magic_sent.html", {"email": email, "desktop": True}
     )
 
 
@@ -113,12 +113,13 @@ def desktop_signin_verify(
 ):
     link = consume_magic_link(session, token, purpose="desktop_pair")
     if link is None:
-        return templates.TemplateResponse("magic_expired.html", {"request": request})
+        return templates.TemplateResponse(request, "magic_expired.html", {})
     user = get_or_create_user(session, link.email)
     dt = issue_desktop_token(session, user.id)
     return templates.TemplateResponse(
+        request,
         "desktop_token.html",
-        {"request": request, "user": user, "desktop_token": dt.token, "settings": get_settings()},
+        {"user": user, "desktop_token": dt.token, "settings": get_settings()},
     )
 
 
@@ -135,9 +136,9 @@ def dashboard(
         return RedirectResponse("/signin", status_code=303)
     used = words_used_this_period(session, user.id)
     return templates.TemplateResponse(
+        request,
         "dashboard.html",
         {
-            "request": request,
             "user": user,
             "used": used,
             "quota": quota_for(user),
@@ -168,7 +169,7 @@ def waitlist_signup(
     if existing is None:
         session.add(WaitlistEntry(email=email, source=source))
         session.commit()
-    return templates.TemplateResponse("waitlist_done.html", {"request": request, "email": email})
+    return templates.TemplateResponse(request, "waitlist_done.html", {"email": email})
 
 
 # --- Billing convenience: signed-in upgrade button → redirect through /billing/checkout ---
