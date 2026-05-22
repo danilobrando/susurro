@@ -17,6 +17,8 @@ us safe from AppKit's main-thread requirement.
 from __future__ import annotations
 
 import logging
+import math
+from enum import Enum
 
 import objc
 import rumps
@@ -44,6 +46,24 @@ WINDOW_HEIGHT = 40
 BOTTOM_OFFSET = 80  # pixels above the bottom edge of the active screen
 TICK_HZ = 30.0
 BAR_SMOOTHING = 0.6  # EMA weight on new sample (0..1, higher = more responsive)
+
+# Processing animation tuning — sinusoidal wave traveling left-to-right.
+PROCESSING_PHASE_STEP = 0.30  # radians per tick (~9 rad/sec at 30 Hz)
+PROCESSING_BAR_SPACING = 0.55  # radians between adjacent bars in the wave
+PROCESSING_BASELINE = 0.30  # bar height when sin == 0
+PROCESSING_AMPLITUDE = 0.35  # peak-to-peak / 2
+
+
+class IndicatorState(str, Enum):
+    """High-level state the indicator should display.
+
+    Set from any thread via `WaveformIndicator.set_state`. The main-thread
+    timer picks up the change on its next tick.
+    """
+
+    IDLE = "idle"
+    RECORDING = "recording"
+    PROCESSING = "processing"
 
 
 class _WaveformView(NSView):
@@ -102,8 +122,9 @@ class WaveformIndicator:
     """Owns the floating window and a polling timer.
 
     `start()` and `stop()` must be called from the main thread (rumps' loop).
-    Internally the timer handles show/hide based on `recorder.is_recording`
-    so the hotkey listener stays decoupled from AppKit.
+    The app sets the high-level state via `set_state(IndicatorState.X)` from
+    any thread; the main-thread timer reacts on its next tick. This keeps the
+    hotkey listener and worker thread decoupled from AppKit.
     """
 
     def __init__(self, recorder) -> None:
@@ -114,6 +135,18 @@ class WaveformIndicator:
         self._history = [0.0] * NUM_BARS
         self._smoothed = 0.0
         self._is_shown = False
+        self._state: IndicatorState = IndicatorState.IDLE
+        self._processing_phase = 0.0
+
+    def set_state(self, state: IndicatorState) -> None:
+        """Switch the visual state. Safe to call from any thread."""
+        if state == self._state:
+            return
+        # Reset processing phase on each entry so the wave always starts the
+        # same way — visually consistent across short and long processing runs.
+        if state == IndicatorState.PROCESSING:
+            self._processing_phase = 0.0
+        self._state = state
 
     # --- lifecycle ---
     def start(self) -> None:
@@ -191,15 +224,26 @@ class WaveformIndicator:
 
     # --- 30 Hz tick on main thread ---
     def _tick(self, _sender) -> None:
-        recording = self._recorder.is_recording
-        if recording and not self._is_shown:
+        state = self._state
+        wants_visible = state in (IndicatorState.RECORDING, IndicatorState.PROCESSING)
+        if wants_visible and not self._is_shown:
             self._do_show()
-        elif not recording and self._is_shown:
+        elif not wants_visible and self._is_shown:
             self._do_hide()
             return
         if not self._is_shown or self._view is None:
             return
-        raw = self._recorder.peak_level()
-        self._smoothed = BAR_SMOOTHING * raw + (1 - BAR_SMOOTHING) * self._smoothed
-        self._history = [*self._history[1:], self._smoothed]
+
+        if state == IndicatorState.RECORDING:
+            raw = self._recorder.peak_level()
+            self._smoothed = BAR_SMOOTHING * raw + (1 - BAR_SMOOTHING) * self._smoothed
+            self._history = [*self._history[1:], self._smoothed]
+        else:  # PROCESSING
+            self._processing_phase += PROCESSING_PHASE_STEP
+            self._history = [
+                PROCESSING_BASELINE
+                + PROCESSING_AMPLITUDE * math.sin(self._processing_phase + i * PROCESSING_BAR_SPACING)
+                for i in range(NUM_BARS)
+            ]
+
         self._view.set_bars(self._history)

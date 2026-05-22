@@ -14,7 +14,7 @@ from . import config, permissions
 from .audio import MicrophoneUnavailable, Recorder
 from .backends import BackendError, BackendUnavailable, make_transcriber
 from .hotkey import HotkeyListener
-from .indicator import WaveformIndicator
+from .indicator import IndicatorState, WaveformIndicator
 from .logging_config import setup as setup_logging
 from .polish import Polisher, append_to_log
 from .typer import insert
@@ -152,6 +152,7 @@ class SusurroApp(rumps.App):
         self._set_status("Status: recording…")
         self.title = TITLE_RECORDING
         self.icon = ICON_RECORDING
+        self.indicator.set_state(IndicatorState.RECORDING)
         _play(START_SOUND)
         self._record_started_at = time.perf_counter()
         self._max_record_timer = threading.Timer(config.MAX_RECORD_SECONDS, self._auto_stop)
@@ -170,10 +171,12 @@ class SusurroApp(rumps.App):
         _play(STOP_SOUND)
         if elapsed < config.MIN_RECORD_SECONDS or audio.size == 0:
             self._set_status("Status: too short, ignored")
+            self.indicator.set_state(IndicatorState.IDLE)
             self._reset_idle()
             return
         self.title = TITLE_PROCESSING
         self.icon = ICON_PROCESSING
+        self.indicator.set_state(IndicatorState.PROCESSING)
         self._set_status(f"Status: transcribing {elapsed:.1f}s…")
         self._jobs.put(audio)
 
@@ -249,6 +252,7 @@ class SusurroApp(rumps.App):
     def _reset_idle(self) -> None:
         self.title = TITLE_IDLE
         self.icon = ICON_IDLE
+        self.indicator.set_state(IndicatorState.IDLE)
 
     @staticmethod
     def _format_polish_summary(raw: str, polished: str, meta: dict) -> str:
