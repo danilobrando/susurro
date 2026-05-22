@@ -1,0 +1,43 @@
+# Caddy config for the susurro.live landing on Railway.
+# Railway provides PORT dynamically; we fall back to 80 for local docker runs.
+# TLS termination happens at Railway's edge, so we serve plain HTTP here.
+
+{
+    # Disable Caddy's automatic HTTPS — Railway's proxy handles it.
+    auto_https off
+    admin off
+}
+
+:{$PORT:80} {
+    root * /srv
+    file_server
+    encode gzip zstd
+
+    # Long cache for fingerprinted / immutable static assets.
+    @cacheable {
+        path *.css *.js *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2
+    }
+    header @cacheable Cache-Control "public, max-age=31536000, immutable"
+
+    # Short cache for HTML so updates roll out fast.
+    @html {
+        path *.html /
+    }
+    header @html Cache-Control "public, max-age=300, must-revalidate"
+
+    header {
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "interest-cohort=()"
+        # Strip the default Caddy "Server" header.
+        -Server
+    }
+
+    # Don't 404 on plain-path requests like /faq — fall back to index.html.
+    try_files {path} {path}/ /index.html
+
+    log {
+        output stdout
+        format console
+    }
+}
