@@ -4,125 +4,63 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Susurro — Voice dictation for macOS</title>
-<meta name="description" content="Voice dictation for macOS with WisprFlow-grade smart formatting. Hot-swap between local Whisper and cloud backends. Free, MIT licensed." />
+<meta name="description" content="Two ways to dictate on your Mac. Susurro Local — free, MIT, runs offline. Susurro Pro — $16/mo, hosted, zero local memory. Same UX in both." />
 <meta property="og:title" content="Susurro — Voice dictation for macOS" />
-<meta property="og:description" content="Hold a hotkey, talk, release. Smart formatting included. Free and MIT-licensed alternative to WisprFlow." />
+<meta property="og:description" content="Hold a hotkey. Talk. Release. Free open-source app or hosted Pro tier with 100k words/month — your choice." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://danilobrando.github.io/susurro/" />
-<meta name="twitter:card" content="summary_large_image" />
+<meta property="og:url" content="https://susurro.live/" />
 <style>
 :root {
-  --bg: #0a0a0b;
-  --bg-card: #131316;
-  --bg-card-2: #1a1a1e;
-  --fg: #f4f4f5;
-  --fg-muted: #a1a1aa;
-  --fg-faint: #71717a;
-  --border: #27272a;
-  --accent: #ffffff;
-  --accent-2: #fafafa;
-  --code-bg: #18181b;
-  --green: #4ade80;
-  --yellow: #facc15;
+  --bg: #0a0a0b; --bg-card: #131316; --bg-card-2: #1a1a1e;
+  --fg: #f4f4f5; --fg-muted: #a1a1aa; --fg-faint: #71717a;
+  --border: #27272a; --accent: #ffffff;
+  --code-bg: #18181b; --green: #4ade80; --yellow: #facc15;
+  --highlight: #fde68a;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--bg); color: var(--fg);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  font-size: 16px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
-.container { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+.container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
 nav {
-  position: sticky; top: 0;
-  background: rgba(10, 10, 11, 0.85);
+  position: sticky; top: 0; background: rgba(10, 10, 11, 0.85);
   backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid var(--border);
-  z-index: 50;
+  border-bottom: 1px solid var(--border); z-index: 50;
 }
 nav .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
 nav .logo { font-weight: 600; font-size: 17px; display: flex; align-items: center; gap: 8px; }
 nav .logo svg { width: 20px; height: 20px; }
-nav ul { list-style: none; display: flex; gap: 28px; }
+nav ul { list-style: none; display: flex; gap: 24px; align-items: center; }
 nav a { color: var(--fg-muted); text-decoration: none; font-size: 14px; transition: color 0.15s; }
 nav a:hover { color: var(--fg); }
 .gh-button {
   background: var(--bg-card); border: 1px solid var(--border);
-  padding: 6px 14px; border-radius: 6px; font-size: 13px;
-  color: var(--fg) !important;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; color: var(--fg) !important;
 }
 .gh-button:hover { background: var(--bg-card-2); }
 
-/* --- Hero --- */
-header { padding: 96px 0 64px; text-align: center; }
+header { padding: 80px 0 56px; text-align: center; }
 .eyebrow {
   display: inline-block; padding: 4px 12px; background: var(--bg-card);
   border: 1px solid var(--border); border-radius: 999px;
   font-size: 12px; color: var(--fg-muted); margin-bottom: 24px;
   letter-spacing: 0.5px; text-transform: uppercase;
 }
-h1 {
-  font-size: clamp(36px, 6vw, 64px);
-  font-weight: 700; letter-spacing: -0.03em;
-  line-height: 1.05; margin-bottom: 20px;
-}
+h1 { font-size: clamp(36px, 6vw, 60px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 20px; }
 h1 .accent { background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-.subhead {
-  font-size: 19px; color: var(--fg-muted); max-width: 640px;
-  margin: 0 auto 40px; line-height: 1.5;
-}
-.cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
-.cta-primary, .cta-secondary {
-  padding: 12px 22px; border-radius: 8px; font-size: 15px; font-weight: 500;
-  text-decoration: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 8px;
-}
-.cta-primary { background: var(--accent); color: var(--bg); border: 1px solid var(--accent); }
-.cta-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,255,255,0.15); }
-.cta-secondary { background: var(--bg-card); color: var(--fg); border: 1px solid var(--border); }
-.cta-secondary:hover { background: var(--bg-card-2); }
+.subhead { font-size: 19px; color: var(--fg-muted); max-width: 680px; margin: 0 auto 48px; line-height: 1.5; }
 
-/* --- Install command --- */
-.install-block {
-  background: var(--code-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px 20px; max-width: 740px; margin: 0 auto;
-  display: flex; align-items: center; gap: 16px; text-align: left;
-}
-.install-block code {
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  font-size: 14px; color: var(--fg);
-  flex: 1; overflow-x: auto; white-space: nowrap;
-}
-.install-block .prompt { color: var(--fg-faint); user-select: none; }
-.copy-btn {
-  background: var(--bg-card); border: 1px solid var(--border);
-  padding: 6px 12px; border-radius: 6px; font-size: 12px;
-  color: var(--fg-muted); cursor: pointer; transition: all 0.15s;
-  font-family: inherit;
-}
-.copy-btn:hover { color: var(--fg); border-color: var(--fg-muted); }
-.copy-btn.copied { color: var(--green); border-color: var(--green); }
-
-/* --- Demo --- */
-.demo {
-  margin: 56px auto 0; max-width: 780px;
-  border: 1px solid var(--border); border-radius: 14px;
-  background: var(--bg-card); padding: 56px 40px;
-  position: relative; overflow: hidden;
-}
-.demo .placeholder { text-align: center; color: var(--fg-muted); font-size: 14px; }
 .pill-demo {
   display: inline-flex; align-items: center; gap: 3px;
   background: rgba(0,0,0,0.72); border: 1px solid rgba(255,255,255,0.1);
   padding: 8px 14px; border-radius: 999px; margin: 24px 0;
 }
-.pill-demo .bar {
-  width: 3px; height: 14px; background: var(--fg); border-radius: 1.5px;
-  animation: pulse 1.4s ease-in-out infinite;
-}
+.pill-demo .bar { width: 3px; height: 14px; background: var(--fg); border-radius: 1.5px; animation: pulse 1.4s ease-in-out infinite; }
 .pill-demo .bar:nth-child(1) { animation-delay: 0s; }
 .pill-demo .bar:nth-child(2) { animation-delay: 0.1s; height: 8px; }
 .pill-demo .bar:nth-child(3) { animation-delay: 0.2s; height: 18px; }
@@ -137,34 +75,57 @@ h1 .accent { background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%); -webkit
 .pill-demo .bar:nth-child(12) { animation-delay: 1.1s; height: 18px; }
 .pill-demo .bar:nth-child(13) { animation-delay: 1.2s; height: 6px; }
 .pill-demo .bar:nth-child(14) { animation-delay: 1.3s; height: 12px; }
-@keyframes pulse {
-  0%, 100% { transform: scaleY(0.4); }
-  50%      { transform: scaleY(1); }
-}
+@keyframes pulse { 0%, 100% { transform: scaleY(0.4); } 50% { transform: scaleY(1); } }
 
-/* --- Sections --- */
-section { padding: 80px 0; border-top: 1px solid var(--border); }
-section h2 {
-  font-size: clamp(28px, 4vw, 38px); font-weight: 700; letter-spacing: -0.02em;
-  margin-bottom: 16px; text-align: center;
+/* Product cards */
+.products {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  max-width: 1000px; margin: 0 auto 32px;
 }
+@media (max-width: 720px) { .products { grid-template-columns: 1fr; } }
+.product {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 32px; position: relative;
+  display: flex; flex-direction: column;
+}
+.product.pro { border-color: rgba(255,255,255,0.2); background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-card-2) 100%); }
+.product .label {
+  display: inline-block; padding: 3px 10px; background: var(--bg-card-2);
+  border: 1px solid var(--border); border-radius: 999px;
+  font-size: 11px; color: var(--fg-muted); margin-bottom: 16px;
+  letter-spacing: 0.5px; text-transform: uppercase; align-self: flex-start;
+}
+.product.pro .label { background: rgba(253, 230, 138, 0.1); border-color: rgba(253, 230, 138, 0.3); color: var(--highlight); }
+.product h2 { font-size: 24px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.01em; }
+.product .price { font-size: 32px; font-weight: 700; margin: 8px 0 0; letter-spacing: -0.02em; }
+.product .price .unit { font-size: 14px; color: var(--fg-muted); font-weight: 400; }
+.product .tagline { color: var(--fg-muted); font-size: 15px; margin: 8px 0 24px; }
+.product ul.feats { list-style: none; padding: 0; margin: 0 0 24px; flex: 1; }
+.product ul.feats li { padding: 8px 0; color: var(--fg); font-size: 14px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid var(--border); }
+.product ul.feats li:last-child { border-bottom: none; }
+.product ul.feats li::before { content: '✓'; color: var(--green); font-weight: 600; flex-shrink: 0; }
+.product .cta {
+  display: block; width: 100%; padding: 14px;
+  border-radius: 8px; font-size: 15px; font-weight: 500;
+  text-decoration: none; text-align: center; transition: all 0.15s;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--bg);
+}
+.product .cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,255,255,0.15); }
+.product.local .cta { background: var(--bg-card-2); color: var(--fg); border-color: var(--border); }
+.product.local .cta:hover { background: var(--border); }
+.product .footer-note { font-size: 12px; color: var(--fg-faint); text-align: center; margin-top: 10px; }
+
+/* Sections */
+section { padding: 72px 0; border-top: 1px solid var(--border); }
+section h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; text-align: center; }
 section .lede { color: var(--fg-muted); text-align: center; max-width: 600px; margin: 0 auto 48px; }
 
-/* Feature grid */
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
-.feature {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 24px;
-}
-.feature .icon {
-  width: 36px; height: 36px; border-radius: 8px;
-  background: var(--bg-card-2); display: flex; align-items: center; justify-content: center;
-  margin-bottom: 16px; color: var(--fg);
-}
+.feature { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+.feature .icon { width: 36px; height: 36px; border-radius: 8px; background: var(--bg-card-2); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
 .feature h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
 .feature p { color: var(--fg-muted); font-size: 14px; line-height: 1.5; }
 
-/* Table */
 .table-wrap { overflow-x: auto; margin: 0 -8px; padding: 0 8px; }
 table { width: 100%; border-collapse: collapse; background: var(--bg-card); border-radius: 10px; overflow: hidden; }
 th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
@@ -172,39 +133,29 @@ th { background: var(--bg-card-2); font-weight: 600; font-size: 12px; text-trans
 tr:last-child td { border-bottom: none; }
 td.good { color: var(--green); font-weight: 500; }
 td.bad { color: var(--fg-faint); }
-td.muted { color: var(--fg-muted); }
 td code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
 
-/* FAQ */
+.install-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; max-width: 740px; margin: 0 auto; display: flex; align-items: center; gap: 16px; text-align: left; }
+.install-block code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; color: var(--fg); flex: 1; overflow-x: auto; white-space: nowrap; }
+.install-block .prompt { color: var(--fg-faint); user-select: none; }
+.copy-btn { background: var(--bg-card); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 12px; color: var(--fg-muted); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.copy-btn:hover { color: var(--fg); border-color: var(--fg-muted); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+
 .faq { display: grid; gap: 12px; max-width: 740px; margin: 0 auto; }
-details {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px 20px;
-}
+details { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
 details[open] { background: var(--bg-card-2); }
-summary {
-  font-weight: 500; cursor: pointer; list-style: none; display: flex;
-  justify-content: space-between; align-items: center;
-}
-summary::after { content: '+'; color: var(--fg-muted); transition: transform 0.2s; }
+summary { font-weight: 500; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+summary::after { content: '+'; color: var(--fg-muted); }
 details[open] summary::after { content: '−'; }
 details p { color: var(--fg-muted); margin-top: 12px; font-size: 14px; }
 details code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
 
-/* Footer */
 footer { border-top: 1px solid var(--border); padding: 32px 0; color: var(--fg-faint); font-size: 13px; }
 footer .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
 footer a { color: var(--fg-muted); }
 footer a:hover { color: var(--fg); }
-
-/* Misc */
-.muted-link { color: var(--fg-muted); text-decoration: none; border-bottom: 1px solid var(--border); }
-.muted-link:hover { color: var(--fg); border-color: var(--fg-muted); }
-.kbd {
-  background: var(--bg-card-2); border: 1px solid var(--border);
-  padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Menlo, monospace;
-  font-size: 12px; color: var(--fg);
-}
+.kbd { background: var(--bg-card-2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Menlo, monospace; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -216,10 +167,10 @@ footer a:hover { color: var(--fg); }
       Susurro
     </div>
     <ul>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#backends">Backends</a></li>
-      <li><a href="#install">Install</a></li>
+      <li><a href="#products">Pricing</a></li>
+      <li><a href="#how">How it works</a></li>
       <li><a href="#faq">FAQ</a></li>
+      <li><a href="https://api.susurro.live/signin">Sign in</a></li>
       <li><a href="https://github.com/danilobrando/susurro" class="gh-button">★ GitHub</a></li>
     </ul>
   </div>
@@ -227,128 +178,121 @@ footer a:hover { color: var(--fg); }
 
 <header>
   <div class="container">
-    <div class="eyebrow">v0.2.0 · Free · MIT licensed</div>
+    <div class="eyebrow">v0.2 · macOS · Two ways to dictate</div>
     <h1>Voice dictation for macOS, <span class="accent">your way.</span></h1>
-    <p class="subhead">
-      Hold a hotkey. Talk. Release. The transcript is polished into structured text and pasted at your cursor in any app — Slack, VS Code, Notes, your browser, anywhere. Choose local Whisper for full privacy, or cloud backends for zero memory and WisprFlow-tier latency.
-    </p>
-    <div class="cta-row">
-      <a href="#install" class="cta-primary">Install Susurro →</a>
-      <a href="https://github.com/danilobrando/susurro" class="cta-secondary">View source</a>
+    <p class="subhead">Hold a hotkey. Talk. Release. The transcript is polished into structured text and pasted at your cursor in any app. Run it offline on your Mac for free, or use our hosted service for zero local memory and faster latency.</p>
+    <div class="pill-demo">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div>
     </div>
-    <div class="install-block" id="hero-install">
-      <span class="prompt">$</span>
-      <code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/danilobrando/susurro/main/install.sh | bash</code>
-      <button class="copy-btn" data-copy="curl -fsSL https://raw.githubusercontent.com/danilobrando/susurro/main/install.sh | bash">Copy</button>
-    </div>
-    <div class="demo">
-      <div class="placeholder">
-        <p style="margin-bottom:16px;">When you hold <span class="kbd">⌥</span> Option, a floating pill appears with 16 bars responding to your voice:</p>
-        <div class="pill-demo">
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-          <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-          <div class="bar"></div><div class="bar"></div>
-        </div>
-        <p style="font-size:13px;">Release the key — Whisper transcribes on-device or in the cloud, an LLM polishes the structure (lists, fillers, backtrack), and the text pastes at your cursor.</p>
-      </div>
-    </div>
+    <p style="color: var(--fg-faint); font-size: 14px;">Hold <span class="kbd">⌥</span> Option · the floating pill shows your voice in real time</p>
   </div>
 </header>
 
-<section id="features">
+<section id="products" style="border-top: none; padding-top: 32px;">
   <div class="container">
-    <h2>Why Susurro</h2>
-    <p class="lede">A voice dictation tool that respects your choices about privacy, latency, and where inference runs.</p>
+    <div class="products">
+
+      <div class="product local">
+        <span class="label">Susurro Local</span>
+        <h2>Free, forever</h2>
+        <div class="price">$0<span class="unit"> · MIT licensed</span></div>
+        <p class="tagline">Runs entirely on your Mac. No accounts, no subscriptions, no data leaves your machine.</p>
+        <ul class="feats">
+          <li>Whisper STT on-device via Apple's MLX</li>
+          <li>Llama 3.2 3B polish on-device (smart formatting, lists, fillers)</li>
+          <li>Works fully offline — no internet required after install</li>
+          <li>Open source, MIT, audit any line</li>
+          <li>Uses ~3 GB RAM while running</li>
+          <li>Apple Silicon (M1+) required</li>
+        </ul>
+        <a href="#install-local" class="cta">Install free →</a>
+        <p class="footer-note">3-minute install via one shell command</p>
+      </div>
+
+      <div class="product pro">
+        <span class="label">Susurro Pro</span>
+        <h2>For everyday dictation</h2>
+        <div class="price">$16<span class="unit"> /month</span></div>
+        <p class="tagline">Cloud transcription with our keys. Zero local memory. WisprFlow-tier latency. Free tier: 2,000 words/month.</p>
+        <ul class="feats">
+          <li>100,000 words/month — published cap, no fair-use surprises</li>
+          <li>~0.7 s latency end-to-end on Groq</li>
+          <li>0 GB local RAM — works on any Mac, eventually</li>
+          <li>No model downloads, no API keys to manage</li>
+          <li>Free tier: 2,000 words/month, no card required</li>
+          <li>Cancel anytime via Stripe Customer Portal</li>
+        </ul>
+        <a href="https://api.susurro.live/signin" class="cta">Sign up free →</a>
+        <p class="footer-note">2,000 words/month free · upgrade in-app or web</p>
+      </div>
+
+    </div>
+    <p style="text-align: center; color: var(--fg-faint); font-size: 14px; margin-top: 32px;">Same desktop app for both. Switch from local to Pro (or back) anytime from the menu bar.</p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="container">
+    <h2>How it works</h2>
+    <p class="lede">Same flow for Local and Pro. Different inference, identical UX.</p>
     <div class="grid-3">
       <div class="feature">
-        <div class="icon">⚡</div>
-        <h3>WisprFlow-tier latency</h3>
-        <p>~0.7 s from key-release to pasted text with Groq's hosted Whisper + Llama. Faster than the original on most networks.</p>
+        <div class="icon" style="font-size: 24px;">⌥</div>
+        <h3>1. Hold the hotkey</h3>
+        <p>Right Option key by default (configurable). The floating pill appears at the bottom of your screen with 16 bars rippling to your voice.</p>
       </div>
       <div class="feature">
-        <div class="icon">🧠</div>
-        <h3>Smart formatting</h3>
-        <p>Ordinals become numbered lists. Fillers ("eh", "um", "o sea") get removed. Self-corrections ("actually 3 PM") get applied. The LLM only fires when triggers detect a payoff.</p>
+        <div class="icon" style="font-size: 24px;">🎙</div>
+        <h3>2. Talk, then release</h3>
+        <p>Whisper transcribes (locally on MLX or remotely on Groq), an LLM polishes the structure — ordinals become numbered lists, fillers get removed, self-corrections get applied.</p>
       </div>
       <div class="feature">
-        <div class="icon">🔀</div>
-        <h3>Hot-swap backends</h3>
-        <p>Run Whisper locally (MLX, 0 network) or remotely (Groq, OpenAI, Deepgram, Gemini, Anthropic — some shipped, more on the way). Polish LLM is independent.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">🔒</div>
-        <h3>Your privacy posture, your call</h3>
-        <p>Local STT keeps audio on-device. Cloud STT trades that for zero RAM and faster latency. Polish can run cloud-only on text. You pick the mix.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">📝</div>
-        <h3>Local audit log</h3>
-        <p>Every (raw → polished) pair is appended to <code style="font-size:12px">~/.susurro/polish.jsonl</code> so you can inspect what changed. Local only, never sent anywhere.</p>
-      </div>
-      <div class="feature">
-        <div class="icon">💰</div>
-        <h3>Free, MIT</h3>
-        <p>No subscription. No telemetry. ~$0.06 / 1000 dictations if you use Groq (free tier covers normal use). $0 if you stay local.</p>
+        <div class="icon" style="font-size: 24px;">⌘V</div>
+        <h3>3. Text pastes at your cursor</h3>
+        <p>The polished text shows up exactly where you were typing — Slack, VS Code, Notes, Gmail, anywhere with a text field.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section id="backends">
+<section id="compare">
   <div class="container">
-    <h2>Backends</h2>
-    <p class="lede">Each stage of the pipeline (STT → polish) can use a different backend. Implemented now, more on the way.</p>
+    <h2>Side by side</h2>
+    <p class="lede">When to pick which.</p>
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Stage</th><th>Backend</th><th>Memory</th><th>Latency (5 s clip)</th><th>Cost / 1k dictations</th><th>Status</th></tr>
+          <tr><th></th><th>Susurro Local</th><th>Susurro Pro</th><th>WisprFlow</th></tr>
         </thead>
         <tbody>
-          <tr><td>STT</td><td><code>local</code> (MLX Whisper)</td><td class="muted">~3 GB</td><td class="muted">~1.0 s</td><td class="good">$0</td><td class="good">Shipped</td></tr>
-          <tr><td>STT</td><td><code>groq</code></td><td class="good">0 GB</td><td class="good">~0.15 s</td><td class="good">$0.06</td><td class="good">Shipped · default</td></tr>
-          <tr><td>STT</td><td><code>openai</code> gpt-4o-transcribe</td><td class="muted">0 GB</td><td class="muted">~0.6 s</td><td class="muted">$0.50</td><td class="bad">v0.4</td></tr>
-          <tr><td>STT</td><td><code>deepgram</code> Nova-3</td><td class="muted">0 GB</td><td class="muted">~0.2 s</td><td class="muted">$0.36</td><td class="bad">v0.4</td></tr>
-          <tr><td>Polish</td><td><code>off</code> · raw STT</td><td class="good">0</td><td class="good">0 ms</td><td class="good">$0</td><td class="good">Shipped</td></tr>
-          <tr><td>Polish</td><td><code>rules</code> · regex only</td><td class="good">0</td><td class="good">~5 ms</td><td class="good">$0</td><td class="good">Shipped</td></tr>
-          <tr><td>Polish</td><td><code>smart</code> · Groq Llama 3.3 70B</td><td class="good">0 GB</td><td class="good">~0.3 s</td><td class="good">$0.06</td><td class="good">Shipped · default</td></tr>
-          <tr><td>Polish</td><td><code>anthropic</code> Claude Haiku 4.5</td><td class="muted">0 GB</td><td class="muted">~0.5 s</td><td class="muted">$0.40</td><td class="bad">v0.4</td></tr>
-          <tr><td>Polish</td><td><code>gemini</code> Flash</td><td class="muted">0 GB</td><td class="muted">~0.4 s</td><td class="muted">$0.01</td><td class="bad">v0.4</td></tr>
+          <tr><td>Price</td><td class="good">Free, MIT</td><td>$16/mo (2k free)</td><td>$15/mo</td></tr>
+          <tr><td>Local RAM</td><td class="bad">~3 GB</td><td class="good">0 GB</td><td class="good">0 GB</td></tr>
+          <tr><td>Latency (5s clip, M3 Pro)</td><td>~1.5 s</td><td class="good">~0.7 s</td><td>~1–3 s</td></tr>
+          <tr><td>Word cap (paid tier)</td><td>—</td><td class="good">100k/mo (published)</td><td>"Fair use" (vague)</td></tr>
+          <tr><td>Offline</td><td class="good">Yes</td><td class="bad">No</td><td class="bad">No</td></tr>
+          <tr><td>Audio leaves your Mac</td><td class="good">Never</td><td>Yes (Groq · no training)</td><td>Yes (proprietary)</td></tr>
+          <tr><td>Open source</td><td class="good">Yes, MIT</td><td class="good">Yes, MIT (client)</td><td class="bad">Closed</td></tr>
+          <tr><td>Hotkey + waveform pill</td><td class="good">Yes</td><td class="good">Yes</td><td class="good">Yes</td></tr>
+          <tr><td>Smart formatting (lists, fillers, backtrack)</td><td class="good">Yes (local Llama 3B)</td><td class="good">Yes (Llama 70B)</td><td class="good">Yes</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </section>
 
-<section id="install">
+<section id="install-local">
   <div class="container">
-    <h2>Install</h2>
-    <p class="lede">macOS 13+ on Apple Silicon. Python 3.10+. ~3 minutes including dependencies.</p>
-
-    <h3 style="margin-bottom:16px;">One-line install</h3>
+    <h2>Install Susurro Local</h2>
+    <p class="lede">macOS 13+ on Apple Silicon. One shell command.</p>
     <div class="install-block">
       <span class="prompt">$</span>
       <code>curl -fsSL https://raw.githubusercontent.com/danilobrando/susurro/main/install.sh | bash</code>
       <button class="copy-btn" data-copy="curl -fsSL https://raw.githubusercontent.com/danilobrando/susurro/main/install.sh | bash">Copy</button>
     </div>
-    <p style="color:var(--fg-muted); font-size:14px; margin: 16px 0 40px;">The script installs Python via Homebrew if needed, sets up <code style="font-size:13px;">pipx</code>, installs Susurro from GitHub, and prints the next-step instructions for setting your API key and granting macOS permissions.</p>
-
-    <h3 style="margin-bottom:16px;">Or with pipx directly</h3>
-    <div class="install-block">
-      <span class="prompt">$</span>
-      <code>pipx install git+https://github.com/danilobrando/susurro</code>
-      <button class="copy-btn" data-copy="pipx install git+https://github.com/danilobrando/susurro">Copy</button>
-    </div>
-    <p style="color:var(--fg-muted); font-size:14px; margin: 16px 0 40px;">If you already have <code style="font-size:13px;">pipx</code>. Then <code style="font-size:13px;">susurro</code> is on your <code style="font-size:13px;">PATH</code>.</p>
-
-    <h3 style="margin-bottom:16px;">Set your Groq key</h3>
-    <p style="color:var(--fg-muted); font-size:14px; margin-bottom: 16px;">Get a free key at <a href="https://console.groq.com/keys" class="muted-link">console.groq.com/keys</a>. The free tier covers normal personal use. Add it to your shell rc:</p>
-    <div class="install-block">
-      <span class="prompt">$</span>
-      <code>echo 'export SUSURRO_GROQ_API_KEY="gsk_..."' >> ~/.zshrc && source ~/.zshrc</code>
-      <button class="copy-btn" data-copy='echo &apos;export SUSURRO_GROQ_API_KEY=&quot;gsk_...&quot;&apos; >> ~/.zshrc && source ~/.zshrc'>Copy</button>
-    </div>
-    <p style="color:var(--fg-muted); font-size:14px; margin: 16px 0;">Then run <code style="font-size:13px;">susurro</code>. The first hotkey press will prompt for Microphone, Accessibility, and Input Monitoring — grant each, then restart your terminal.</p>
+    <p style="text-align: center; color: var(--fg-muted); font-size: 14px; margin-top: 24px;">The installer checks for Apple Silicon, installs Python deps via pipx, downloads Whisper + Llama 3B (one-time, ~5 GB), and registers the <code style="background: var(--code-bg); padding: 1px 6px; border-radius: 4px;">susurro</code> command. After install, you'll grant 3 macOS permissions and hold <span class="kbd">⌥</span> to talk.</p>
   </div>
 </section>
 
@@ -357,32 +301,32 @@ footer a:hover { color: var(--fg); }
     <h2>FAQ</h2>
     <div class="faq">
       <details>
-        <summary>How is this different from WisprFlow?</summary>
-        <p>Same core UX (hotkey-driven dictation with smart formatting), but Susurro is free, MIT-licensed, and lets you choose where inference runs. WisprFlow is closed-source, paid, and cloud-only. Susurro also exposes the polish log locally so you can audit every edit.</p>
+        <summary>Can I switch between Local and Pro?</summary>
+        <p>Yes — same app, single click in the menu bar. Susurro Pro saves a token in <code>~/.susurro/auth.json</code>; signing out goes back to Local. The hotkey, waveform pill, polish prompt — all identical.</p>
       </details>
       <details>
-        <summary>Does my audio leave my machine?</summary>
-        <p>Only if you choose a cloud STT backend. With <code>STT_BACKEND="local"</code>, audio stays on-device — only the polished transcript (text) goes to the polish LLM if you set <code>POLISH_BACKEND</code> to a cloud provider. With both stages local, nothing leaves.</p>
+        <summary>What's the deal with the 100,000 word/month cap on Pro?</summary>
+        <p>Most paid dictation tools say "unlimited with fair use" and throttle you privately. We publish the cap: 100,000 words/month before a soft warning, 110,000 hard cap with a 24h cooldown. At average ~50 words per dictation that's ~2,000 dictations/month — more than even heavy daily users. If you need more, contact us.</p>
       </details>
       <details>
-        <summary>What happens if my API key expires or Groq has an outage?</summary>
-        <p>The daemon catches the error, switches to the local MLX backend for that and all future requests in the session, and posts a macOS notification telling you. You don't lose the transcription.</p>
+        <summary>What happens with my audio on Susurro Pro?</summary>
+        <p>Audio is streamed to Groq for Whisper transcription + Llama polish, then dropped. Nothing persisted on our servers — we only store the final word count for usage metering. Groq's TOS states they don't train on API data. If you need zero-network privacy, use Susurro Local.</p>
       </details>
       <details>
-        <summary>Why is the default not 100% local?</summary>
-        <p>Local Whisper holds ~3 GB of RAM continuously. Most users prefer trading that for ~0.06 USD per 1000 dictations and faster latency. If you want full local, change one line in <code>susurro/config.py</code>: <code>STT_BACKEND = "local"</code>.</p>
+        <summary>Why is Susurro Local Apple Silicon only?</summary>
+        <p>The local backend uses Apple's MLX framework for Whisper and Llama, which only runs on M-series chips. Susurro Pro doesn't have this restriction — once we ship the Intel/Windows desktop client, you'll be able to use Pro from anywhere.</p>
       </details>
       <details>
-        <summary>Do I need Apple Silicon?</summary>
-        <p>For now, yes. The package depends on Apple's MLX framework even if you only use cloud backends. v0.4 will split that into an optional extra so Intel Macs can run cloud-only.</p>
+        <summary>What is the "smart formatting" actually doing?</summary>
+        <p>An LLM looks at the raw Whisper output and applies four kinds of edits: ordinals like "primero, segundo, tercero" become a markdown numbered list; obvious fillers (eh, mmm, you know, um, uh) get removed; self-corrections ("Pedro, eh, Pablo digo") collapse to the final intent; long monologues get paragraph breaks. It explicitly refuses to paraphrase or change the speaker's words.</p>
       </details>
       <details>
-        <summary>Is there a Windows or Linux version?</summary>
-        <p>Not currently. The menu bar UI uses macOS-specific frameworks (rumps, AppKit, PyObjC) and the global hotkey + paste pipeline relies on macOS Accessibility APIs. Porting would mean rewriting roughly half the codebase.</p>
+        <summary>How do I get a refund?</summary>
+        <p>Email <a href="mailto:hi@susurro.live" style="color: var(--fg);">hi@susurro.live</a>. We refund first-month cancellations within 7 days, no questions asked.</p>
       </details>
       <details>
-        <summary>Can I customize the hotkey?</summary>
-        <p>Yes. Edit <code>HOTKEY</code> in <code>susurro/config.py</code>. Default is <code>"alt_r"</code> (right Option). Any pynput <code>Key</code> name works: <code>"alt_l"</code>, <code>"ctrl_r"</code>, <code>"f19"</code>, etc.</p>
+        <summary>Can I use my own Groq / OpenAI / Anthropic key with the desktop app?</summary>
+        <p>Yes — that's Susurro Local's "advanced" mode. Set <code>SUSURRO_GROQ_API_KEY</code> in your environment, change <code>STT_BACKEND="groq"</code> in <code>susurro/config.py</code>, and the app proxies through your own key. Free, no Susurro Pro account needed.</p>
       </details>
     </div>
   </div>
@@ -390,10 +334,10 @@ footer a:hover { color: var(--fg); }
 
 <footer>
   <div class="container">
-    <div>© 2026 Danny Bravo · <a href="https://github.com/danilobrando/susurro/blob/main/LICENSE">MIT License</a></div>
+    <div>© 2026 Susurro · <a href="https://github.com/danilobrando/susurro/blob/main/LICENSE">MIT License</a> · <a href="mailto:hi@susurro.live">hi@susurro.live</a></div>
     <div>
       <a href="https://github.com/danilobrando/susurro">GitHub</a> ·
-      <a href="https://github.com/danilobrando/susurro/issues">Issues</a> ·
+      <a href="https://api.susurro.live/signin">Sign in</a> ·
       <a href="https://github.com/danilobrando/susurro/blob/main/CHANGELOG.md">Changelog</a>
     </div>
   </div>
@@ -402,16 +346,7 @@ footer a:hover { color: var(--fg); }
 <script>
 document.querySelectorAll('.copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
-    const text = btn.dataset.copy;
-    try {
-      await navigator.clipboard.writeText(text);
-      btn.classList.add('copied');
-      const orig = btn.textContent;
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.classList.remove('copied'); btn.textContent = orig; }, 1500);
-    } catch (e) {
-      console.error('Copy failed', e);
-    }
+    try { await navigator.clipboard.writeText(btn.dataset.copy); btn.classList.add('copied'); btn.textContent = 'Copied!'; setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy'; }, 1500); } catch (e) {}
   });
 });
 </script>

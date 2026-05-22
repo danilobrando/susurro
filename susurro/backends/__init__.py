@@ -29,9 +29,13 @@ def make_transcriber(backend: str) -> Transcriber:
         from .groq import GroqTranscriber
 
         return GroqTranscriber()
+    if backend == "susurro_pro":
+        from .susurro_pro import SusurroProTranscriber
+
+        return SusurroProTranscriber()
     raise ValueError(
         f"Unknown STT backend: {backend!r}. "
-        "Available: local, groq. Planned: openai, deepgram, gemini, anthropic."
+        "Available: local, groq, susurro_pro. Planned: openai, deepgram, gemini, anthropic."
     )
 
 
@@ -42,8 +46,12 @@ def make_polish_llm(backend: str) -> PolishLLM:
         from .groq import GroqPolishLLM
 
         return GroqPolishLLM()
+    if backend == "local":
+        from .local_mlx_lm import LocalMLXPolishLLM
+
+        return LocalMLXPolishLLM()
     raise ValueError(
-        f"Unknown polish backend: {backend!r}. Available: groq. Planned: anthropic, openai, gemini."
+        f"Unknown polish backend: {backend!r}. Available: groq, local. Planned: anthropic, openai, gemini."
     )
 
 

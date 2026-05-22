@@ -13,6 +13,8 @@ import rumps
 from . import config, permissions
 from .audio import MicrophoneUnavailable, Recorder
 from .backends import BackendError, BackendUnavailable, make_transcriber
+from .backends.susurro_pro import clear_token as susurro_pro_clear_token
+from .backends.susurro_pro import save_token as susurro_pro_save_token
 from .hotkey import HotkeyListener
 from .indicator import IndicatorState, WaveformIndicator
 from .logging_config import setup as setup_logging
@@ -90,6 +92,16 @@ class SusurroApp(rumps.App):
             ),
             None,
             rumps.MenuItem("Copy last transcript", callback=self._copy_last),
+            None,
+            (
+                "Susurro Pro",
+                [
+                    rumps.MenuItem("Sign in to Susurro Pro…", callback=self._signin_susurro_pro),
+                    rumps.MenuItem("Sign out", callback=self._signout_susurro_pro),
+                    None,
+                    rumps.MenuItem("Open dashboard…", callback=self._open_pro_dashboard),
+                ],
+            ),
             None,
             (
                 "Permissions",
@@ -329,6 +341,47 @@ class SusurroApp(rumps.App):
     def _open_polish_log(self, _sender) -> None:
         config.POLISH_LOG_FILE.touch(exist_ok=True)
         subprocess.Popen(["open", str(config.POLISH_LOG_FILE)])
+
+    def _signin_susurro_pro(self, _sender) -> None:
+        # Step 1: open the browser to the pairing page.
+        subprocess.Popen(["open", f"{config.SUSURRO_PRO_API_URL}/auth/desktop"])
+        # Step 2: prompt for the token returned by the verify page.
+        window = rumps.Window(
+            title="Sign in to Susurro Pro",
+            message=(
+                "1. Type your email on the page that just opened.\n"
+                "2. Click the link in your email.\n"
+                "3. Copy the desktop token shown.\n"
+                "4. Paste it below."
+            ),
+            default_text="",
+            ok="Save",
+            cancel="Cancel",
+            dimensions=(360, 80),
+        )
+        response = window.run()
+        if not response.clicked or not response.text.strip():
+            return
+        token = response.text.strip()
+        susurro_pro_save_token(token)
+        # Switch backend to susurro_pro and re-warm.
+        config.STT_BACKEND = "susurro_pro"
+        config.POLISH_MODE = "off"  # server already polishes
+        self.transcriber = make_transcriber("susurro_pro")
+        threading.Thread(target=self._warmup, daemon=True).start()
+        rumps.notification("Susurro", "Signed in to Susurro Pro", "Backend switched to hosted.")
+
+    def _signout_susurro_pro(self, _sender) -> None:
+        susurro_pro_clear_token()
+        # Fall back to local STT.
+        config.STT_BACKEND = "local"
+        config.POLISH_MODE = "smart"
+        self.transcriber = make_transcriber("local")
+        threading.Thread(target=self._warmup, daemon=True).start()
+        rumps.notification("Susurro", "Signed out", "Backend switched back to local.")
+
+    def _open_pro_dashboard(self, _sender) -> None:
+        subprocess.Popen(["open", f"{config.SUSURRO_PRO_WEB_URL}/dashboard"])
 
     def _open_mic_settings(self, _sender) -> None:
         permissions.open_microphone()

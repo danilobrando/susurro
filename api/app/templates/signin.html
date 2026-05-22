@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{% if purpose == 'desktop_pair' %}Connect Mac · Susurro{% else %}Sign in · Susurro{% endif %}{% endblock %}
+{% block content %}
+<a href="/" class="logo">
+  <svg viewBox="0 0 44 44" fill="currentColor"><rect x="15" y="6" width="14" height="22" rx="7"/><path d="M10 22 a12 12 0 0 0 24 0" fill="none" stroke="currentColor" stroke-width="2"/><line x1="22" y1="34" x2="22" y2="39" stroke="currentColor" stroke-width="2"/><line x1="17" y1="39" x2="27" y2="39" stroke="currentColor" stroke-width="2"/></svg>
+  Susurro Pro
+</a>
+{% if purpose == 'desktop_pair' %}
+  <h1>Connect your Mac.</h1>
+  <p class="lede">Enter the email you signed up with. We'll email a link that gives you a token to paste into the Susurro app.</p>
+  <form method="post" action="/auth/desktop">
+    <input type="email" name="email" required placeholder="you@example.com" autofocus />
+    <button type="submit">Email me the link</button>
+  </form>
+{% else %}
+  <h1>Sign in to Susurro Pro.</h1>
+  <p class="lede">No password. We'll email you a one-time link.</p>
+  <form method="post" action="/signin">
+    <input type="email" name="email" required placeholder="you@example.com" autofocus />
+    <button type="submit">Email me the link</button>
+  </form>
+  <p class="small">New here? Same flow — we'll create your account on first sign-in. Includes 2,000 words/month free.</p>
+{% endif %}
+{% endblock %}

@@ -14,11 +14,11 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 ICONS_DIR = PACKAGE_DIR / "icons"
 
 # --- STT backend ---
-# "local" runs Whisper on-device via MLX (~3 GB RAM, no network).
-# "groq"  uses Groq's hosted Whisper (no local memory, ~0.15 s for 5 s of audio,
-#         requires SUSURRO_GROQ_API_KEY).
-# Planned: openai, deepgram, gemini, anthropic.
-STT_BACKEND: str = "groq"
+# "local"        runs Whisper on-device via MLX (~3 GB RAM, no network).
+# "groq"         uses Groq's hosted Whisper with the user's own API key.
+# "susurro_pro"  uses Susurro Pro's hosted service (one-call STT + polish,
+#                billed monthly, sign in via the menu).
+STT_BACKEND: str = "local"
 
 # Model used by the LOCAL MLX backend. Larger = more accurate, slower.
 #   mlx-community/whisper-large-v3-mlx       (~3 GB, best)
@@ -41,14 +41,24 @@ LANGUAGE: str | None = None
 #   smart  — rules + LLM polish when ordinals/long-form patterns trigger
 POLISH_MODE: str = "smart"
 
-# Polish LLM backend. Currently only "groq" is implemented.
-# Planned: anthropic, openai, gemini.
-POLISH_BACKEND: str = "groq"
+# Polish LLM backend.
+#   "local"  — mlx-lm with a small local model (default for Susurro Local).
+#   "groq"   — Groq's hosted Llama 3.3 70B (requires user's own API key).
+POLISH_BACKEND: str = "local"
 
 # Model used by the GROQ polish backend.
 #   llama-3.3-70b-versatile  — best Spanish quality
 #   llama-3.1-8b-instant     — faster, lower quality
 GROQ_POLISH_MODEL = "llama-3.3-70b-versatile"
+
+# Model used by the LOCAL polish backend (mlx-lm).
+#   mlx-community/Llama-3.2-3B-Instruct-4bit  — ~1.8 GB, ~50 tok/s on M3 Pro
+#   mlx-community/Qwen2.5-3B-Instruct-4bit    — alternative multilingual
+LOCAL_POLISH_MODEL = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+
+# --- Susurro Pro (hosted SaaS) ---
+SUSURRO_PRO_API_URL = "https://api.susurro.live"
+SUSURRO_PRO_WEB_URL = "https://susurro.live"
 
 # --- Audio ---
 SAMPLE_RATE = 16_000  # Whisper expects 16kHz mono.
