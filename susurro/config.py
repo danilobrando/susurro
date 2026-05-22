@@ -1,20 +1,54 @@
-"""Centralized config — tweak these to match your machine and preferences."""
+"""Centralized config — tweak these to match your machine and preferences.
+
+API keys are NEVER read from this file. They come from environment variables:
+
+    export SUSURRO_GROQ_API_KEY="gsk_..."        # or GROQ_API_KEY
+    export SUSURRO_ANTHROPIC_API_KEY="sk-ant-..." # or ANTHROPIC_API_KEY
+    export SUSURRO_OPENAI_API_KEY="sk-..."        # or OPENAI_API_KEY
+    export SUSURRO_GEMINI_API_KEY="..."           # or GEMINI_API_KEY
+"""
 
 from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 ICONS_DIR = PACKAGE_DIR / "icons"
 
-# --- STT model ---
-# Default is large-v3 (best accuracy, ~3GB). Already cached on this machine.
-# For WisprFlow-tier latency switch to turbo — ~6x faster decode with near-identical
-# accuracy on Apple Silicon, but adds a one-time ~1.6GB download:
-#     MODEL_REPO = "mlx-community/whisper-large-v3-turbo"
-# Smaller options: "mlx-community/whisper-medium-mlx", "...whisper-small-mlx".
-MODEL_REPO = "mlx-community/whisper-large-v3-mlx"
+# --- STT backend ---
+# "local" runs Whisper on-device via MLX (~3 GB RAM, no network).
+# "groq"  uses Groq's hosted Whisper (no local memory, ~0.15 s for 5 s of audio,
+#         requires SUSURRO_GROQ_API_KEY).
+# Planned: openai, deepgram, gemini, anthropic.
+STT_BACKEND: str = "groq"
 
-# Force a language ("es", "en", ...) or leave None for auto-detect.
+# Model used by the LOCAL MLX backend. Larger = more accurate, slower.
+#   mlx-community/whisper-large-v3-mlx       (~3 GB, best)
+#   mlx-community/whisper-large-v3-turbo     (~1.6 GB, ~6x faster)
+#   mlx-community/whisper-medium-mlx         (~1.5 GB, balanced)
+LOCAL_STT_MODEL = "mlx-community/whisper-large-v3-turbo"
+
+# Model used by the GROQ STT backend.
+#   whisper-large-v3-turbo  — fastest, recommended
+#   whisper-large-v3        — slightly higher accuracy
+GROQ_STT_MODEL = "whisper-large-v3-turbo"
+
+# Force a language ("es", "en", ...) or None for auto-detect.
 LANGUAGE: str | None = None
+
+# --- Polish (post-STT structuring) ---
+# Three modes:
+#   off    — pass through raw STT
+#   rules  — regex cleanup only (~5 ms, no network)
+#   smart  — rules + LLM polish when ordinals/long-form patterns trigger
+POLISH_MODE: str = "smart"
+
+# Polish LLM backend. Currently only "groq" is implemented.
+# Planned: anthropic, openai, gemini.
+POLISH_BACKEND: str = "groq"
+
+# Model used by the GROQ polish backend.
+#   llama-3.3-70b-versatile  — best Spanish quality
+#   llama-3.1-8b-instant     — faster, lower quality
+GROQ_POLISH_MODEL = "llama-3.3-70b-versatile"
 
 # --- Audio ---
 SAMPLE_RATE = 16_000  # Whisper expects 16kHz mono.
@@ -40,3 +74,4 @@ SHOW_INDICATOR = True  # Floating waveform pill near the bottom of the screen.
 HOME_DIR = Path.home() / ".susurro"
 HOME_DIR.mkdir(exist_ok=True)
 LOG_FILE = HOME_DIR / "susurro.log"
+POLISH_LOG_FILE = HOME_DIR / "polish.jsonl"

@@ -1,3 +1,3 @@
-"""Susurro — local-first voice dictation for macOS."""
+"""Susurro — voice dictation for macOS with hot-swap STT + polish backends."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

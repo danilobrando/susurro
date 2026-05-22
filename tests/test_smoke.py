@@ -1,7 +1,7 @@
-"""Smoke tests — verify the package imports and the basic wiring is intact.
+"""Smoke tests — verify the package imports and basic wiring is intact.
 
-Real STT + audio capture aren't exercised here because CI runners don't have
-mics or Apple Silicon. Run `scripts/test_mic.py` locally for end-to-end.
+Real STT + audio capture + cloud calls aren't exercised here. Run
+`scripts/test_mic.py` locally for end-to-end with a mic + API key.
 """
 
 from __future__ import annotations
@@ -28,7 +28,6 @@ def test_config_paths_exist() -> None:
 def test_hotkey_resolves() -> None:
     from susurro.hotkey import HotkeyListener
 
-    # Constructing the listener resolves the hotkey name to a pynput Key.
     HotkeyListener(on_press=lambda: None, on_release=lambda: None)
 
 
@@ -37,19 +36,31 @@ def test_recorder_constructs_without_starting() -> None:
 
     r = Recorder()
     assert not r.is_recording
-    # Empty stop() returns zero-length array.
     out = r.stop()
     assert isinstance(out, np.ndarray)
     assert out.size == 0
-    # Peak level on an idle recorder is zero.
     assert r.peak_level() == 0.0
 
 
 def test_indicator_constructs_without_creating_window() -> None:
-    # AppKit imports work on macOS via PyObjC (shipped by rumps). We don't
-    # call start() — that requires a real run loop.
     from susurro.audio import Recorder
     from susurro.indicator import WaveformIndicator
 
     ind = WaveformIndicator(Recorder())
     assert ind is not None
+
+
+def test_backend_factory_known_and_unknown() -> None:
+    from susurro.backends import make_polish_llm, make_transcriber
+
+    # Construction must NOT do network or model load.
+    assert make_transcriber("local") is not None
+    assert make_transcriber("groq") is not None
+    assert make_polish_llm("groq") is not None
+
+    import pytest
+
+    with pytest.raises(ValueError):
+        make_transcriber("nonexistent")
+    with pytest.raises(ValueError):
+        make_polish_llm("nonexistent")

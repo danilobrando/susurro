@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "susurro"
-version = "0.1.0"
-description = "Local-first voice dictation for macOS. Your audio never leaves your machine."
+version = "0.2.0"
+description = "Voice dictation for macOS with WisprFlow-grade smart formatting. Hot-swap between local (MLX) and cloud (Groq, OpenAI, Anthropic, Gemini, Deepgram) backends."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -19,8 +19,9 @@ keywords = [
     "apple-silicon",
     "macos",
     "menu-bar",
-    "local-first",
-    "privacy",
+    "groq",
+    "llm",
+    "wisprflow",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -42,9 +43,14 @@ dependencies = [
     "pynput>=1.7",
     "rumps>=0.4",
     "numpy>=1.26",
+    "openai>=1.40",  # used for both OpenAI and Groq (OpenAI-compatible API)
 ]
 
 [project.optional-dependencies]
+# Future cloud backends — install only what you use.
+anthropic = ["anthropic>=0.40"]
+gemini = ["google-genai>=0.3"]
+deepgram = ["deepgram-sdk>=3.0"]
 dev = [
     "ruff>=0.6",
     "pytest>=8.0",

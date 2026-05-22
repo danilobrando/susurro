@@ -7,10 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-22
+
 ### Added
 
-- **Floating waveform indicator.** A small dark pill (140×40) appears near the bottom-center of the active screen while recording, with 16 white bars rippling to live mic input — same affordance as WisprFlow. Click-through, floats above all windows, follows the cursor to the active display in multi-monitor setups. Toggle in the menu or via `SHOW_INDICATOR` in `config.py`.
-- `Recorder.peak_level()` exposes the current mic RMS (0..1) for UI consumption.
+- **Hot-swappable backends.** STT and polish providers are now pluggable. Ships with `local` (MLX Whisper) and `groq` (hosted Whisper + Llama 3.3 70B). Future drops: OpenAI, Anthropic, Gemini, Deepgram.
+- **Cloud-first defaults.** `STT_BACKEND="groq"` and `POLISH_BACKEND="groq"` drop local RAM usage from ~3 GB to 0 GB. Latency improves from ~1.8 s to ~0.7 s end-to-end on a 5 s clip.
+- **Smart formatting (LLM polish).** Three modes (`off`/`rules`/`smart`). The LLM runs **only** when triggers fire (ordinal markers, backtrack phrases, long-form input) to keep latency low for the common case.
+- **Polish rules layer.** Regex-based filler removal (`eh`, `mmm`, `o sea sí`, `um`, `uh`, `este pues`) + whitespace normalization. Runs in <5 ms, no network.
+- **Polish trigger detection.** Detects Spanish/English ordinals (`primero/segundo/tercero`, `first/second/third`, `en primer lugar`) and self-correction phrases (`en realidad`, `actually`, `digo`).
+- **Polish system prompt.** Idempotent prompt with 5 few-shot examples covering numbered lists, filler removal, and backtrack. Refuses to paraphrase or translate.
+- **Polish event log.** Every (raw, polished, metadata) tuple appended to `~/.susurro/polish.jsonl` for local audit and future tuning. Never sent anywhere.
+- **Menu submenu: Smart formatting ▸ Off / Rules only / Smart (LLM).** Hot-toggle without restart.
+- **Fallback chain.** If a cloud backend fails (missing key, network error), automatically falls back to local MLX.
+- **Floating waveform indicator** (carried over from v0.1.x development). 16-bar pill, click-through, follows the active screen.
+- API key resolution accepts both `SUSURRO_<PROVIDER>_API_KEY` and the provider's standard env var.
+
+### Changed
+
+- **Tagline: dropped "local-first" as the default identity.** Susurro now positions as "your choice of where inference runs" — local for full privacy, cloud for low memory + low latency. Per-stage configuration.
+- Default `LOCAL_STT_MODEL` switched from `whisper-large-v3-mlx` to `whisper-large-v3-turbo` for ~6× faster local decode.
+- Package version bumped to 0.2.0.
+- `susurro/stt.py` removed; replaced by `susurro/backends/local_mlx.py` (`MLXTranscriber`).
+
+### Dependencies
+
+- Added `openai>=1.40` (used for both OpenAI and Groq via OpenAI-compatible API).
+- Added optional extras: `anthropic`, `gemini`, `deepgram`.
+
+## [0.1.0] — 2026-05-21
 
 ## [0.1.0] — 2026-05-21
 

@@ -1,4 +1,8 @@
-"""Whisper inference via mlx-whisper — runs entirely on-device."""
+"""Local Whisper transcription via Apple's MLX framework.
+
+Runs entirely on-device. No network calls after model weights are cached.
+Apple Silicon only.
+"""
 
 from __future__ import annotations
 
@@ -8,30 +12,34 @@ import time
 import mlx_whisper
 import numpy as np
 
-from . import config
+from .. import config
 
 logger = logging.getLogger(__name__)
 
 
-class Transcriber:
-    """Thin wrapper that warms the model on first use and reuses it after."""
+class MLXTranscriber:
+    """Thin wrapper around `mlx_whisper.transcribe` with eager warmup."""
 
-    def __init__(self) -> None:
+    name = "local"
+
+    def __init__(self, model_repo: str | None = None, language: str | None = None) -> None:
+        self.model_repo = model_repo or config.LOCAL_STT_MODEL
+        self.language = language if language is not None else config.LANGUAGE
         self._warmed = False
 
     def warmup(self) -> None:
-        """First call downloads weights and JIT-compiles graphs — do it eagerly."""
         if self._warmed:
             return
+        # 0.5 s of silence is enough to trigger model load + JIT compile.
         silence = np.zeros(config.SAMPLE_RATE // 2, dtype=np.float32)
         mlx_whisper.transcribe(
             silence,
-            path_or_hf_repo=config.MODEL_REPO,
-            language=config.LANGUAGE,
+            path_or_hf_repo=self.model_repo,
+            language=self.language,
             verbose=None,
         )
         self._warmed = True
-        logger.info("model ready: %s", config.MODEL_REPO)
+        logger.info("local STT ready: %s", self.model_repo)
 
     def transcribe(self, audio: np.ndarray) -> str:
         if audio.size == 0:
@@ -39,8 +47,8 @@ class Transcriber:
         t0 = time.perf_counter()
         result = mlx_whisper.transcribe(
             audio,
-            path_or_hf_repo=config.MODEL_REPO,
-            language=config.LANGUAGE,
+            path_or_hf_repo=self.model_repo,
+            language=self.language,
             verbose=None,
             temperature=0.0,
             condition_on_previous_text=False,
@@ -49,6 +57,5 @@ class Transcriber:
         text = (result.get("text") or "").strip()
         audio_secs = audio.size / config.SAMPLE_RATE
         rtf = elapsed / audio_secs if audio_secs > 0 else 0
-        logger.info("%.1fs audio → %.2fs (%.2fx RTF)", audio_secs, elapsed, rtf)
-        logger.debug("transcript: %r", text)
+        logger.info("[local-stt] %.1fs audio → %.2fs (%.2fx RTF)", audio_secs, elapsed, rtf)
         return text

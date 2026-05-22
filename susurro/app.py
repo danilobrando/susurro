@@ -1,4 +1,4 @@
-"""Susurro main daemon — menu bar app that glues recorder + STT + typer together."""
+"""Susurro main daemon — menu bar app that glues recorder + STT + polish + typer."""
 
 from __future__ import annotations
 
@@ -12,16 +12,15 @@ import rumps
 
 from . import config, permissions
 from .audio import MicrophoneUnavailable, Recorder
+from .backends import BackendError, BackendUnavailable, make_transcriber
 from .hotkey import HotkeyListener
 from .indicator import WaveformIndicator
 from .logging_config import setup as setup_logging
-from .stt import Transcriber
+from .polish import Polisher, append_to_log
 from .typer import insert
 
 logger = logging.getLogger(__name__)
 
-# Title prefixes layered on top of the icon so state is visible even if the icon
-# gets squeezed off the menu bar (notch territory).
 TITLE_IDLE = ""
 TITLE_RECORDING = " ● REC"
 TITLE_PROCESSING = " …"
@@ -53,7 +52,8 @@ class SusurroApp(rumps.App):
             quit_button=None,
         )
         self.recorder = Recorder()
-        self.transcriber = Transcriber()
+        self.transcriber = make_transcriber(config.STT_BACKEND)
+        self.polisher = Polisher()
         self.hotkey: HotkeyListener | None = None
         self.indicator = WaveformIndicator(self.recorder)
 
@@ -66,16 +66,28 @@ class SusurroApp(rumps.App):
         self._max_record_timer: threading.Timer | None = None
         self._last_text: str = ""
         self._use_clipboard: bool = True
+        self._last_polish_summary: str = "no polish yet"
 
         self.menu = [
             rumps.MenuItem("Status: starting…", callback=None),
             None,
             rumps.MenuItem(f"Hotkey: {config.HOTKEY} (hold to talk)", callback=None),
-            rumps.MenuItem(f"Model: {config.MODEL_REPO.split('/')[-1]}", callback=None),
+            rumps.MenuItem(f"STT: {config.STT_BACKEND}", callback=None),
+            rumps.MenuItem(f"Polish: {config.POLISH_MODE} ({config.POLISH_BACKEND})", callback=None),
+            rumps.MenuItem("Last polish: —", callback=None),
             None,
             rumps.MenuItem("Insert via clipboard (Cmd+V)", callback=self._toggle_clipboard),
             rumps.MenuItem("Play feedback sounds", callback=self._toggle_sounds),
             rumps.MenuItem("Show waveform indicator", callback=self._toggle_indicator),
+            None,
+            (
+                "Smart formatting",
+                [
+                    rumps.MenuItem("Off (raw STT)", callback=self._set_polish_off),
+                    rumps.MenuItem("Rules only", callback=self._set_polish_rules),
+                    rumps.MenuItem("Smart (LLM)", callback=self._set_polish_smart),
+                ],
+            ),
             None,
             rumps.MenuItem("Copy last transcript", callback=self._copy_last),
             None,
@@ -90,6 +102,7 @@ class SusurroApp(rumps.App):
                 ],
             ),
             rumps.MenuItem("Open log…", callback=self._open_log),
+            rumps.MenuItem("Open polish log…", callback=self._open_polish_log),
             None,
             rumps.MenuItem(f"Susurro v{__import__('susurro').__version__}", callback=None),
             rumps.MenuItem("Quit", callback=self._quit),
@@ -97,23 +110,34 @@ class SusurroApp(rumps.App):
         self.menu["Insert via clipboard (Cmd+V)"].state = 1
         self.menu["Play feedback sounds"].state = 1 if config.PLAY_SOUNDS else 0
         self.menu["Show waveform indicator"].state = 1 if config.SHOW_INDICATOR else 0
+        self._refresh_polish_menu_state()
 
-        # The indicator timer polls the recorder for state and shows/hides itself.
         if config.SHOW_INDICATOR:
             self.indicator.start()
 
-        # Warm the model in the background so the first real recording isn't slow.
         threading.Thread(target=self._warmup, daemon=True).start()
 
     # --- background warmup ---
     def _warmup(self) -> None:
-        self._set_status("Status: loading model…")
+        self._set_status(f"Status: warming {config.STT_BACKEND} STT…")
         try:
             self.transcriber.warmup()
-            self._set_status("Status: idle")
-        except Exception as e:
-            logger.exception("model warmup failed")
-            self._set_status(f"Status: model load failed — {e}")
+        except (BackendUnavailable, BackendError) as e:
+            logger.warning("STT backend %s unavailable (%s); falling back to local", config.STT_BACKEND, e)
+            self._set_status(f"Status: {config.STT_BACKEND} unavailable, falling back to local")
+            self.transcriber = make_transcriber("local")
+            try:
+                self.transcriber.warmup()
+            except Exception as e2:
+                logger.exception("local STT warmup also failed")
+                self._set_status(f"Status: STT load failed — {e2}")
+                return
+        self._set_status(f"Status: warming {config.POLISH_BACKEND} polish…")
+        try:
+            self.polisher.warmup()
+        except Exception:
+            logger.exception("polish warmup failed; polish disabled")
+        self._set_status("Status: idle")
 
     # --- hotkey handlers ---
     def on_hotkey_press(self) -> None:
@@ -158,30 +182,39 @@ class SusurroApp(rumps.App):
             logger.info("hit MAX_RECORD_SECONDS=%s, stopping", config.MAX_RECORD_SECONDS)
             self.on_hotkey_release()
 
-    # --- worker that consumes audio → transcription → typing ---
+    # --- worker: audio → STT → polish → paste ---
     def _worker_loop(self) -> None:
         while True:
             audio = self._jobs.get()
             try:
-                text = self.transcriber.transcribe(audio)
-                if not text:
+                raw = self.transcriber.transcribe(audio)
+                if not raw:
                     self._set_status("Status: idle (empty result)")
                     continue
-                self._last_text = text
+                self._set_status(f"Status: polishing ({len(raw)} chars)…")
                 try:
-                    insert(text, use_clipboard=self._use_clipboard)
+                    polished, meta = self.polisher.polish(raw)
+                except Exception:
+                    logger.exception("polish raised; falling back to raw STT")
+                    polished, meta = raw, {"mode": "off", "llm_invoked": False, "elapsed_s": 0.0}
+                self._last_text = polished
+                self._last_polish_summary = self._format_polish_summary(raw, polished, meta)
+                self._refresh_polish_menu_state()
+                append_to_log(raw, polished, meta)
+                try:
+                    insert(polished, use_clipboard=self._use_clipboard)
                 except Exception:
                     logger.exception("text insertion failed — accessibility permission missing?")
                     self._set_status("Status: paste failed — check Accessibility")
                     continue
-                self._set_status(f"Status: inserted ({len(text)} chars)")
+                self._set_status(f"Status: inserted ({len(polished)} chars)")
                 if config.SHOW_NOTIFICATIONS:
                     try:
-                        rumps.notification("Susurro", "Transcribed", text[:120])
+                        rumps.notification("Susurro", "Transcribed", polished[:120])
                     except Exception:
                         logger.debug("notification failed", exc_info=True)
             except Exception as e:
-                logger.exception("transcription failed")
+                logger.exception("pipeline failed")
                 self._set_status(f"Status: error — {e}")
             finally:
                 self._reset_idle()
@@ -190,6 +223,19 @@ class SusurroApp(rumps.App):
     def _reset_idle(self) -> None:
         self.title = TITLE_IDLE
         self.icon = ICON_IDLE
+
+    @staticmethod
+    def _format_polish_summary(raw: str, polished: str, meta: dict) -> str:
+        mode = meta.get("mode", "?")
+        if meta.get("llm_invoked"):
+            tag = f"smart in {meta.get('elapsed_s', 0):.2f}s"
+        elif mode == "off":
+            tag = "off (raw)"
+        else:
+            tag = "rules only"
+        delta = len(polished) - len(raw)
+        sign = "+" if delta >= 0 else ""
+        return f"Last polish: {tag}, {sign}{delta} chars"
 
     # --- menu callbacks ---
     def _toggle_clipboard(self, sender) -> None:
@@ -208,6 +254,39 @@ class SusurroApp(rumps.App):
         else:
             self.indicator.stop()
 
+    def _set_polish_off(self, _sender) -> None:
+        self._set_polish_mode("off")
+
+    def _set_polish_rules(self, _sender) -> None:
+        self._set_polish_mode("rules")
+
+    def _set_polish_smart(self, _sender) -> None:
+        self._set_polish_mode("smart")
+
+    def _set_polish_mode(self, mode: str) -> None:
+        config.POLISH_MODE = mode
+        self.polisher = Polisher(mode=mode)
+        if mode == "smart":
+            threading.Thread(target=self.polisher.warmup, daemon=True).start()
+        self._refresh_polish_menu_state()
+
+    def _refresh_polish_menu_state(self) -> None:
+        try:
+            sub = self.menu["Smart formatting"]
+            sub["Off (raw STT)"].state = 1 if config.POLISH_MODE == "off" else 0
+            sub["Rules only"].state = 1 if config.POLISH_MODE == "rules" else 0
+            sub["Smart (LLM)"].state = 1 if config.POLISH_MODE == "smart" else 0
+        except Exception:
+            logger.debug("polish menu state refresh failed", exc_info=True)
+        # Update the static info lines.
+        for item in self.menu.values():
+            if not isinstance(item, rumps.MenuItem):
+                continue
+            if item.title.startswith("Polish: "):
+                item.title = f"Polish: {config.POLISH_MODE} ({config.POLISH_BACKEND})"
+            elif item.title.startswith("Last polish:"):
+                item.title = self._last_polish_summary
+
     def _copy_last(self, _sender) -> None:
         if not self._last_text:
             return
@@ -216,6 +295,10 @@ class SusurroApp(rumps.App):
 
     def _open_log(self, _sender) -> None:
         subprocess.Popen(["open", str(config.LOG_FILE)])
+
+    def _open_polish_log(self, _sender) -> None:
+        config.POLISH_LOG_FILE.touch(exist_ok=True)
+        subprocess.Popen(["open", str(config.POLISH_LOG_FILE)])
 
     def _open_mic_settings(self, _sender) -> None:
         permissions.open_microphone()
@@ -242,8 +325,12 @@ class SusurroApp(rumps.App):
 
 def main() -> None:
     setup_logging()
-    logger.info("starting Susurro")
-    # Touch the log file so it exists for the "Open log…" menu item.
+    logger.info(
+        "starting Susurro (STT=%s, polish=%s/%s)",
+        config.STT_BACKEND,
+        config.POLISH_MODE,
+        config.POLISH_BACKEND,
+    )
     config.LOG_FILE.touch(exist_ok=True)
     app = SusurroApp()
     app.hotkey = HotkeyListener(on_press=app.on_hotkey_press, on_release=app.on_hotkey_release)
