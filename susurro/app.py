@@ -183,11 +183,37 @@ class SusurroApp(rumps.App):
             self.on_hotkey_release()
 
     # --- worker: audio → STT → polish → paste ---
+    def _transcribe_with_fallback(self, audio):
+        """Try the configured STT backend; on runtime failure, switch to local once."""
+        try:
+            return self.transcriber.transcribe(audio)
+        except BackendError as e:
+            if self.transcriber.name == "local":
+                raise
+            logger.warning(
+                "STT backend %s failed at runtime (%s); switching to local for this and future requests",
+                self.transcriber.name,
+                e,
+            )
+            self._set_status(f"Status: {self.transcriber.name} failed → switching to local")
+            if config.SHOW_NOTIFICATIONS:
+                try:
+                    rumps.notification(
+                        "Susurro",
+                        f"{self.transcriber.name} STT failed",
+                        "Switched to local Whisper. Check your API key.",
+                    )
+                except Exception:
+                    logger.debug("notification failed", exc_info=True)
+            self.transcriber = make_transcriber("local")
+            self.transcriber.warmup()
+            return self.transcriber.transcribe(audio)
+
     def _worker_loop(self) -> None:
         while True:
             audio = self._jobs.get()
             try:
-                raw = self.transcriber.transcribe(audio)
+                raw = self._transcribe_with_fallback(audio)
                 if not raw:
                     self._set_status("Status: idle (empty result)")
                     continue
