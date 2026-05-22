@@ -354,9 +354,42 @@ class SusurroApp(rumps.App):
 
 
 def main() -> None:
+    import sys
+
+    import susurro
+
+    if len(sys.argv) > 1 and sys.argv[1] in ("--version", "-v"):
+        print(f"Susurro v{susurro.__version__}")
+        return
+    if len(sys.argv) > 1 and sys.argv[1] in ("--help", "-h"):
+        print(f"""Susurro v{susurro.__version__} — voice dictation for macOS
+
+Usage:
+    susurro              Launch the menu bar daemon
+    susurro --version    Print version
+    susurro --help       Print this message
+
+Configuration:
+    SUSURRO_GROQ_API_KEY      Required for the default cloud STT + polish backend.
+                              Get one at https://console.groq.com/keys
+    SUSURRO_ANTHROPIC_API_KEY  Optional, for future Anthropic backend.
+    SUSURRO_OPENAI_API_KEY     Optional, for future OpenAI backend.
+
+Per-stage backend selection in susurro/config.py:
+    STT_BACKEND       "groq" (default) or "local"
+    POLISH_BACKEND    "groq" (default)
+    POLISH_MODE       "smart" (default) | "rules" | "off"
+
+Logs: ~/.susurro/susurro.log
+Polish events: ~/.susurro/polish.jsonl
+
+Project: https://github.com/danilobrando/susurro
+""")
+        return
     setup_logging()
     logger.info(
-        "starting Susurro (STT=%s, polish=%s/%s)",
+        "starting Susurro v%s (STT=%s, polish=%s/%s)",
+        susurro.__version__,
         config.STT_BACKEND,
         config.POLISH_MODE,
         config.POLISH_BACKEND,
