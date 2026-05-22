@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint + format
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install ruff
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format --check
+        run: ruff format --check .
+
+  smoke:
+    name: Smoke import test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        # We can't actually install mlx on CI runners reliably (Apple Silicon
+        # availability varies), so we just verify the package metadata is sound
+        # and imports that don't need mlx work.
+        run: pip install --no-deps -e .
+      - name: Verify package metadata
+        run: python -c "import susurro; print(susurro.__version__)"
