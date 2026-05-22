@@ -11,7 +11,16 @@ Hold a hotkey, talk, release. The transcript is polished into structured text â€
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-blue)]()
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)]()
-[![Version](https://img.shields.io/badge/version-0.2.0-success)]()
+[![Version](https://img.shields.io/badge/version-0.2.0-success)](https://github.com/danilobrando/susurro/releases/latest)
+[![Landing](https://img.shields.io/badge/site-danilobrando.github.io%2Fsusurro-white)](https://danilobrando.github.io/susurro/)
+
+## Install (one line)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/danilobrando/susurro/main/install.sh | bash
+```
+
+The script checks for Apple Silicon, Python 3.10+, installs `pipx` via Homebrew if needed, then installs Susurro from this repo. After install, you'll get instructions for setting your Groq API key and granting macOS permissions. Full landing + docs at **[danilobrando.github.io/susurro](https://danilobrando.github.io/susurro/)**.
 
 ## Why
 
