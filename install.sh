@@ -68,8 +68,12 @@ fi
 ok "pipx ready"
 
 # --- 5. Install Susurro ---
-info "Installing Susurro from GitHub… (this can take a minute — pulls MLX wheels)"
-pipx install --force git+https://github.com/danilobrando/susurro.git@main
+# Prefer PyPI (faster, signed wheels). Fall back to GitHub for unreleased builds.
+info "Installing Susurro from PyPI… (this can take a minute — pulls MLX wheels)"
+if pipx install --force susurro 2>&1 | grep -qi "no matching distribution\|could not find"; then
+    info "PyPI install failed (package may not be published yet); falling back to GitHub"
+    pipx install --force git+https://github.com/danilobrando/susurro.git@main
+fi
 ok "Susurro installed"
 
 # --- 6. Verify CLI ---
