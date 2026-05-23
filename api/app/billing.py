@@ -1,4 +1,4 @@
-"""Stripe Checkout + webhook for the Susurro Pro $16/mo subscription.
+"""Stripe Checkout + webhook for the Susurro Pro $10/mo subscription.
 
 Flow:
     1. Signed-in user clicks "Upgrade" on /dashboard → POST /billing/checkout

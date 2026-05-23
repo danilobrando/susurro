@@ -37,7 +37,7 @@ Without a verified domain, Resend will reject sends from `hi@susurro.live`. As a
 ## 3. Stripe (subscription billing)
 
 1. Create a Stripe account at https://stripe.com
-2. Create a **Product** → name: "Susurro Pro" → **Recurring price** $16.00 USD / month → save → copy the `price_xxx` ID.
+2. Create a **Product** → name: "Susurro Pro" → **Recurring price** $10.00 USD / month → save → copy the `price_xxx` ID.
 3. Get your **Secret key** (`sk_test_...` for test mode, `sk_live_...` for production) from Developers → API keys.
 4. Set on Railway:
 

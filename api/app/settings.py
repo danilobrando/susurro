@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # --- Billing (Stripe) ---
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id_pro: str = ""  # the $16/mo recurring price
+    stripe_price_id_pro: str = ""  # the $10/mo recurring price
 
     # --- Inference (Groq) ---
     groq_api_key: str = ""
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # --- Plan name shown to users ---
     pro_plan_name: str = "Susurro Pro"
-    pro_price_label: str = "$16/month"
+    pro_price_label: str = "$10/month"
 
 
 @lru_cache(maxsize=1)
