@@ -96,35 +96,26 @@ fi
 title "Next steps"
 cat <<EOF
 
-${YELLOW}1.${NC} Get a free Groq API key (covers normal personal use):
-   ${BLUE}https://console.groq.com/keys${NC}
-
-${YELLOW}2.${NC} Add the key to your shell so Susurro can find it. Open your shell rc file
-   in an editor — usually ${BOLD}~/.zshrc${NC} — and add this line:
-
-     ${GREEN}export SUSURRO_GROQ_API_KEY="gsk_..."${NC}
-
-   Then reload it:
-
-     ${GREEN}source ~/.zshrc${NC}
-
-   Verify (should print ${BOLD}gsk_${NC}):
-     ${GREEN}echo "\${SUSURRO_GROQ_API_KEY:0:4}"${NC}
-
-${YELLOW}3.${NC} Launch the daemon:
+${YELLOW}1.${NC} Launch the daemon:
 
      ${GREEN}susurro${NC}
 
-${YELLOW}4.${NC} The first time you use the hotkey, macOS will prompt for ${BOLD}3 permissions${NC}:
+   The first run downloads ~5 GB of model weights (Whisper + Llama 3.2 3B),
+   one time only. After that, everything runs offline on your Mac.
+
+${YELLOW}2.${NC} The first time you use the hotkey, macOS will prompt for ${BOLD}3 permissions${NC}:
      • Microphone (capture audio)
      • Accessibility (paste at cursor)
      • Input Monitoring (global hotkey)
    The menu bar dropdown has direct links to each pane. After granting them,
    ${BOLD}fully quit and relaunch the terminal${NC} before opening Susurro again.
 
-${YELLOW}5.${NC} Hold the ${BOLD}right Option (⌥)${NC} key, talk, release. The transcript pastes
-   at your cursor. You'll see a floating waveform pill at the bottom-center
-   of the screen while recording + processing.
+${YELLOW}3.${NC} Hold the ${BOLD}right Option (⌥)${NC} key, talk, release. Polished text pastes
+   at the cursor. A floating waveform pill at the bottom of the screen shows
+   it's listening, then animates while it transcribes.
+
+${YELLOW}4.${NC} (Optional) For zero local RAM + faster latency, upgrade to Susurro Pro:
+   ${BLUE}https://susurro.live${NC}  · same hotkey, cloud Whisper + Llama 70B.
 
 Docs:   ${BLUE}https://github.com/danilobrando/susurro${NC}
 Issues: ${BLUE}https://github.com/danilobrando/susurro/issues${NC}
