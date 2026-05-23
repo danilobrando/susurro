@@ -39,21 +39,30 @@ if [ "$(uname -m)" != "arm64" ]; then
 fi
 ok "Apple Silicon detected"
 
-# --- 3. Python 3.10+ ---
-if ! command -v python3 >/dev/null 2>&1; then
-    err "Python 3 not found."
-    echo "  Install via Homebrew: brew install python@3.12"
+# --- 3. Pick a Python (3.10-3.13). Skip 3.14: Homebrew's build has a known
+#       libexpat ABI mismatch that crashes pipx mid-install on macOS arm64.
+PYTHON=""
+for v in 3.13 3.12 3.11 3.10; do
+    if command -v "python$v" >/dev/null 2>&1; then
+        PYTHON="$(command -v "python$v")"
+        break
+    fi
+done
+if [ -z "$PYTHON" ]; then
+    # Fall back to the default python3 only if its minor is 10..13.
+    if command -v python3 >/dev/null 2>&1; then
+        DEFAULT_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
+        if [ "$DEFAULT_MINOR" -ge 10 ] && [ "$DEFAULT_MINOR" -le 13 ]; then
+            PYTHON="$(command -v python3)"
+        fi
+    fi
+fi
+if [ -z "$PYTHON" ]; then
+    err "Need Python 3.10, 3.11, 3.12, or 3.13. Install one: brew install python@3.12"
     exit 1
 fi
-PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-PY_MAJOR=$(echo "$PY_VERSION" | cut -d. -f1)
-PY_MINOR=$(echo "$PY_VERSION" | cut -d. -f2)
-if [ "$PY_MAJOR" -lt 3 ] || { [ "$PY_MAJOR" -eq 3 ] && [ "$PY_MINOR" -lt 10 ]; }; then
-    err "Python 3.10+ required. Found: $PY_VERSION"
-    echo "  Install a newer Python: brew install python@3.12"
-    exit 1
-fi
-ok "Python $PY_VERSION detected"
+PY_VERSION=$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+ok "Python $PY_VERSION detected at $PYTHON"
 
 # --- 4. pipx ---
 if ! command -v pipx >/dev/null 2>&1; then
@@ -67,12 +76,11 @@ if ! command -v pipx >/dev/null 2>&1; then
 fi
 ok "pipx ready"
 
-# --- 5. Install Susurro ---
-# Prefer PyPI (faster, signed wheels). Fall back to GitHub for unreleased builds.
-info "Installing Susurro from PyPI… (this can take a minute — pulls MLX wheels)"
-if pipx install --force susurro 2>&1 | grep -qi "no matching distribution\|could not find"; then
-    info "PyPI install failed (package may not be published yet); falling back to GitHub"
-    pipx install --force git+https://github.com/danilobrando/susurro.git@main
+# --- 5. Install Susurro from PyPI ---
+info "Installing Susurro from PyPI… (~1 min the first time, pulls MLX wheels)"
+if ! pipx install --force --python "$PYTHON" susurro 2>&1; then
+    err "PyPI install failed. Falling back to GitHub main…"
+    pipx install --force --python "$PYTHON" git+https://github.com/danilobrando/susurro.git@main
 fi
 ok "Susurro installed"
 
