@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "susurro"
-version = "0.2.0"
-description = "Voice dictation for macOS with WisprFlow-grade smart formatting. Hot-swap between local (MLX) and cloud (Groq, OpenAI, Anthropic, Gemini, Deepgram) backends."
+version = "0.4.0"
+description = "Local voice dictation for macOS. Whisper + Llama 3.2 3B run on-device via Apple's MLX framework. No accounts, no API keys, no network."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -19,12 +19,12 @@ keywords = [
     "apple-silicon",
     "macos",
     "menu-bar",
-    "groq",
-    "llm",
-    "wisprflow",
+    "local-first",
+    "privacy",
+    "offline",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: MacOS X",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
@@ -39,24 +39,20 @@ classifiers = [
 dependencies = [
     "mlx>=0.21",
     "mlx-whisper>=0.4",
-    "mlx-lm>=0.21",                # local polish LLM (Llama 3.2 3B etc.)
+    "mlx-lm>=0.21",
     "sounddevice>=0.4",
     "pynput>=1.7",
     "rumps>=0.4",
     "numpy>=1.26",
-    "openai>=1.40",                # Groq + OpenAI (both OpenAI-compatible)
-    "httpx>=0.27",                 # talking to Susurro Pro API
 ]
 
 [project.optional-dependencies]
-# Future cloud backends — install only what you use.
-anthropic = ["anthropic>=0.40"]
-gemini = ["google-genai>=0.3"]
-deepgram = ["deepgram-sdk>=3.0"]
 dev = [
     "ruff>=0.6",
     "pytest>=8.0",
     "pillow>=10.0",
+    "build>=1.2",
+    "twine>=5.0",
 ]
 
 [project.scripts]

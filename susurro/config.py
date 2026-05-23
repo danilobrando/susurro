@@ -1,11 +1,10 @@
 """Centralized config — tweak these to match your machine and preferences.
 
-API keys are NEVER read from this file. They come from environment variables:
+Susurro runs fully offline. All inference (Whisper STT + Llama polish) happens
+on-device via Apple's MLX framework. No API keys, no accounts, no network.
 
-    export SUSURRO_GROQ_API_KEY="gsk_..."        # or GROQ_API_KEY
-    export SUSURRO_ANTHROPIC_API_KEY="sk-ant-..." # or ANTHROPIC_API_KEY
-    export SUSURRO_OPENAI_API_KEY="sk-..."        # or OPENAI_API_KEY
-    export SUSURRO_GEMINI_API_KEY="..."           # or GEMINI_API_KEY
+For cloud-extended dictation (lower latency, zero local RAM), see Susurro Pro
+at https://susurro.live — it's a separate package that extends this one.
 """
 
 from pathlib import Path
@@ -14,51 +13,32 @@ PACKAGE_DIR = Path(__file__).resolve().parent
 ICONS_DIR = PACKAGE_DIR / "icons"
 
 # --- STT backend ---
-# "local"        runs Whisper on-device via MLX (~3 GB RAM, no network).
-# "groq"         uses Groq's hosted Whisper with the user's own API key.
-# "susurro_pro"  uses Susurro Pro's hosted service (one-call STT + polish,
-#                billed monthly, sign in via the menu).
+# OSS ships only "local". Extensions register additional backends at import
+# time via susurro.backends.register_transcriber().
 STT_BACKEND: str = "local"
 
 # Model used by the LOCAL MLX backend. Larger = more accurate, slower.
-#   mlx-community/whisper-large-v3-mlx       (~3 GB, best)
-#   mlx-community/whisper-large-v3-turbo     (~1.6 GB, ~6x faster)
-#   mlx-community/whisper-medium-mlx         (~1.5 GB, balanced)
+#   mlx-community/whisper-large-v3-turbo  — recommended (~1.5 GB, ~6x faster decode)
+#   mlx-community/whisper-large-v3-mlx    — best accuracy (~3 GB)
+#   mlx-community/whisper-medium-mlx      — balanced (~1.5 GB)
 LOCAL_STT_MODEL = "mlx-community/whisper-large-v3-turbo"
-
-# Model used by the GROQ STT backend.
-#   whisper-large-v3-turbo  — fastest, recommended
-#   whisper-large-v3        — slightly higher accuracy
-GROQ_STT_MODEL = "whisper-large-v3-turbo"
 
 # Force a language ("es", "en", ...) or None for auto-detect.
 LANGUAGE: str | None = None
 
 # --- Polish (post-STT structuring) ---
-# Three modes:
 #   off    — pass through raw STT
 #   rules  — regex cleanup only (~5 ms, no network)
 #   smart  — rules + LLM polish when ordinals/long-form patterns trigger
 POLISH_MODE: str = "smart"
 
-# Polish LLM backend.
-#   "local"  — mlx-lm with a small local model (default for Susurro Local).
-#   "groq"   — Groq's hosted Llama 3.3 70B (requires user's own API key).
+# Polish LLM backend. OSS ships only "local". Extensions can register others.
 POLISH_BACKEND: str = "local"
-
-# Model used by the GROQ polish backend.
-#   llama-3.3-70b-versatile  — best Spanish quality
-#   llama-3.1-8b-instant     — faster, lower quality
-GROQ_POLISH_MODEL = "llama-3.3-70b-versatile"
 
 # Model used by the LOCAL polish backend (mlx-lm).
 #   mlx-community/Llama-3.2-3B-Instruct-4bit  — ~1.8 GB, ~50 tok/s on M3 Pro
 #   mlx-community/Qwen2.5-3B-Instruct-4bit    — alternative multilingual
 LOCAL_POLISH_MODEL = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-
-# --- Susurro Pro (hosted SaaS) ---
-SUSURRO_PRO_API_URL = "https://api.susurro.live"
-SUSURRO_PRO_WEB_URL = "https://susurro.live"
 
 # --- Audio ---
 SAMPLE_RATE = 16_000  # Whisper expects 16kHz mono.

@@ -51,16 +51,37 @@ def test_indicator_constructs_without_creating_window() -> None:
 
 
 def test_backend_factory_known_and_unknown() -> None:
-    from susurro.backends import make_polish_llm, make_transcriber
-
-    # Construction must NOT do network or model load.
-    assert make_transcriber("local") is not None
-    assert make_transcriber("groq") is not None
-    assert make_polish_llm("groq") is not None
-
     import pytest
+
+    from susurro.backends import (
+        available_polish_llms,
+        available_transcribers,
+        make_polish_llm,
+        make_transcriber,
+    )
+
+    # OSS only ships "local".
+    assert make_transcriber("local") is not None
+    assert make_polish_llm("local") is not None
+    assert "local" in available_transcribers()
+    assert "local" in available_polish_llms()
 
     with pytest.raises(ValueError):
         make_transcriber("nonexistent")
     with pytest.raises(ValueError):
         make_polish_llm("nonexistent")
+
+
+def test_backend_registration_hook() -> None:
+    from susurro.backends import available_transcribers, make_transcriber, register_transcriber
+
+    class _FakeSTT:
+        name = "fake"
+
+        def warmup(self) -> None: ...
+        def transcribe(self, audio):
+            return ""
+
+    register_transcriber("fake", lambda: _FakeSTT())
+    assert "fake" in available_transcribers()
+    assert make_transcriber("fake").name == "fake"

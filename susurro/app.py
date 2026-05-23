@@ -1,4 +1,8 @@
-"""Susurro main daemon — menu bar app that glues recorder + STT + polish + typer."""
+"""Susurro main daemon — menu bar app that glues recorder + STT + polish + typer.
+
+Subclassable: downstream packages (e.g. susurro-pro) can extend SusurroApp to
+add menu items by overriding `_extra_menu_items()`.
+"""
 
 from __future__ import annotations
 
@@ -12,9 +16,7 @@ import rumps
 
 from . import config, permissions
 from .audio import MicrophoneUnavailable, Recorder
-from .backends import BackendError, BackendUnavailable, make_transcriber
-from .backends.susurro_pro import clear_token as susurro_pro_clear_token
-from .backends.susurro_pro import save_token as susurro_pro_save_token
+from .backends import make_transcriber
 from .hotkey import HotkeyListener
 from .indicator import IndicatorState, WaveformIndicator
 from .logging_config import setup as setup_logging
@@ -59,7 +61,6 @@ class SusurroApp(rumps.App):
         self.hotkey: HotkeyListener | None = None
         self.indicator = WaveformIndicator(self.recorder)
 
-        # Single-worker queue so transcriptions run one at a time, in order.
         self._jobs: queue.Queue = queue.Queue()
         self._worker = threading.Thread(target=self._worker_loop, daemon=True)
         self._worker.start()
@@ -70,7 +71,21 @@ class SusurroApp(rumps.App):
         self._use_clipboard: bool = True
         self._last_polish_summary: str = "no polish yet"
 
-        self.menu = [
+        self.menu = self._build_menu()
+        self.menu["Insert via clipboard (Cmd+V)"].state = 1
+        self.menu["Play feedback sounds"].state = 1 if config.PLAY_SOUNDS else 0
+        self.menu["Show waveform indicator"].state = 1 if config.SHOW_INDICATOR else 0
+        self._refresh_polish_menu_state()
+
+        if config.SHOW_INDICATOR:
+            self.indicator.start()
+
+        threading.Thread(target=self._warmup, daemon=True).start()
+
+    # --- menu construction (override _extra_menu_items in subclasses) ---
+
+    def _build_menu(self) -> list:
+        menu = [
             rumps.MenuItem("Status: starting…", callback=None),
             None,
             rumps.MenuItem(f"Hotkey: {config.HOTKEY} (hold to talk)", callback=None),
@@ -92,58 +107,46 @@ class SusurroApp(rumps.App):
             ),
             None,
             rumps.MenuItem("Copy last transcript", callback=self._copy_last),
-            None,
-            (
-                "Susurro Pro",
-                [
-                    rumps.MenuItem("Sign in to Susurro Pro…", callback=self._signin_susurro_pro),
-                    rumps.MenuItem("Sign out", callback=self._signout_susurro_pro),
-                    None,
-                    rumps.MenuItem("Open dashboard…", callback=self._open_pro_dashboard),
-                ],
-            ),
-            None,
-            (
-                "Permissions",
-                [
-                    rumps.MenuItem("Open Microphone Settings…", callback=self._open_mic_settings),
-                    rumps.MenuItem(
-                        "Open Accessibility Settings…", callback=self._open_accessibility_settings
-                    ),
-                    rumps.MenuItem("Open Input Monitoring Settings…", callback=self._open_input_settings),
-                ],
-            ),
-            rumps.MenuItem("Open log…", callback=self._open_log),
-            rumps.MenuItem("Open polish log…", callback=self._open_polish_log),
-            None,
-            rumps.MenuItem(f"Susurro v{__import__('susurro').__version__}", callback=None),
-            rumps.MenuItem("Quit", callback=self._quit),
         ]
-        self.menu["Insert via clipboard (Cmd+V)"].state = 1
-        self.menu["Play feedback sounds"].state = 1 if config.PLAY_SOUNDS else 0
-        self.menu["Show waveform indicator"].state = 1 if config.SHOW_INDICATOR else 0
-        self._refresh_polish_menu_state()
+        extra = self._extra_menu_items()
+        if extra:
+            menu.append(None)
+            menu.extend(extra)
+        menu.extend(
+            [
+                None,
+                (
+                    "Permissions",
+                    [
+                        rumps.MenuItem("Open Microphone Settings…", callback=self._open_mic_settings),
+                        rumps.MenuItem(
+                            "Open Accessibility Settings…", callback=self._open_accessibility_settings
+                        ),
+                        rumps.MenuItem("Open Input Monitoring Settings…", callback=self._open_input_settings),
+                    ],
+                ),
+                rumps.MenuItem("Open log…", callback=self._open_log),
+                rumps.MenuItem("Open polish log…", callback=self._open_polish_log),
+                None,
+                rumps.MenuItem(f"Susurro v{__import__('susurro').__version__}", callback=None),
+                rumps.MenuItem("Quit", callback=self._quit),
+            ]
+        )
+        return menu
 
-        if config.SHOW_INDICATOR:
-            self.indicator.start()
+    def _extra_menu_items(self) -> list:
+        """Override in subclasses to inject items between Copy-last and Permissions."""
+        return []
 
-        threading.Thread(target=self._warmup, daemon=True).start()
-
-    # --- background warmup ---
+    # --- warmup ---
     def _warmup(self) -> None:
         self._set_status(f"Status: warming {config.STT_BACKEND} STT…")
         try:
             self.transcriber.warmup()
-        except (BackendUnavailable, BackendError) as e:
-            logger.warning("STT backend %s unavailable (%s); falling back to local", config.STT_BACKEND, e)
-            self._set_status(f"Status: {config.STT_BACKEND} unavailable, falling back to local")
-            self.transcriber = make_transcriber("local")
-            try:
-                self.transcriber.warmup()
-            except Exception as e2:
-                logger.exception("local STT warmup also failed")
-                self._set_status(f"Status: STT load failed — {e2}")
-                return
+        except Exception as e:
+            logger.exception("STT warmup failed")
+            self._set_status(f"Status: STT load failed — {e}")
+            return
         self._set_status(f"Status: warming {config.POLISH_BACKEND} polish…")
         try:
             self.polisher.warmup()
@@ -198,37 +201,11 @@ class SusurroApp(rumps.App):
             self.on_hotkey_release()
 
     # --- worker: audio → STT → polish → paste ---
-    def _transcribe_with_fallback(self, audio):
-        """Try the configured STT backend; on runtime failure, switch to local once."""
-        try:
-            return self.transcriber.transcribe(audio)
-        except BackendError as e:
-            if self.transcriber.name == "local":
-                raise
-            logger.warning(
-                "STT backend %s failed at runtime (%s); switching to local for this and future requests",
-                self.transcriber.name,
-                e,
-            )
-            self._set_status(f"Status: {self.transcriber.name} failed → switching to local")
-            if config.SHOW_NOTIFICATIONS:
-                try:
-                    rumps.notification(
-                        "Susurro",
-                        f"{self.transcriber.name} STT failed",
-                        "Switched to local Whisper. Check your API key.",
-                    )
-                except Exception:
-                    logger.debug("notification failed", exc_info=True)
-            self.transcriber = make_transcriber("local")
-            self.transcriber.warmup()
-            return self.transcriber.transcribe(audio)
-
     def _worker_loop(self) -> None:
         while True:
             audio = self._jobs.get()
             try:
-                raw = self._transcribe_with_fallback(audio)
+                raw = self.transcriber.transcribe(audio)
                 if not raw:
                     self._set_status("Status: idle (empty result)")
                     continue
@@ -237,7 +214,8 @@ class SusurroApp(rumps.App):
                     polished, meta = self.polisher.polish(raw)
                 except Exception:
                     logger.exception("polish raised; falling back to raw STT")
-                    polished, meta = raw, {"mode": "off", "llm_invoked": False, "elapsed_s": 0.0}
+                    polished = raw
+                    meta = {"mode": "off", "llm_invoked": False, "elapsed_s": 0.0}
                 self._last_text = polished
                 self._last_polish_summary = self._format_polish_summary(raw, polished, meta)
                 self._refresh_polish_menu_state()
@@ -320,7 +298,6 @@ class SusurroApp(rumps.App):
             sub["Smart (LLM)"].state = 1 if config.POLISH_MODE == "smart" else 0
         except Exception:
             logger.debug("polish menu state refresh failed", exc_info=True)
-        # Update the static info lines.
         for item in self.menu.values():
             if not isinstance(item, rumps.MenuItem):
                 continue
@@ -341,47 +318,6 @@ class SusurroApp(rumps.App):
     def _open_polish_log(self, _sender) -> None:
         config.POLISH_LOG_FILE.touch(exist_ok=True)
         subprocess.Popen(["open", str(config.POLISH_LOG_FILE)])
-
-    def _signin_susurro_pro(self, _sender) -> None:
-        # Step 1: open the browser to the pairing page.
-        subprocess.Popen(["open", f"{config.SUSURRO_PRO_API_URL}/auth/desktop"])
-        # Step 2: prompt for the token returned by the verify page.
-        window = rumps.Window(
-            title="Sign in to Susurro Pro",
-            message=(
-                "1. Type your email on the page that just opened.\n"
-                "2. Click the link in your email.\n"
-                "3. Copy the desktop token shown.\n"
-                "4. Paste it below."
-            ),
-            default_text="",
-            ok="Save",
-            cancel="Cancel",
-            dimensions=(360, 80),
-        )
-        response = window.run()
-        if not response.clicked or not response.text.strip():
-            return
-        token = response.text.strip()
-        susurro_pro_save_token(token)
-        # Switch backend to susurro_pro and re-warm.
-        config.STT_BACKEND = "susurro_pro"
-        config.POLISH_MODE = "off"  # server already polishes
-        self.transcriber = make_transcriber("susurro_pro")
-        threading.Thread(target=self._warmup, daemon=True).start()
-        rumps.notification("Susurro", "Signed in to Susurro Pro", "Backend switched to hosted.")
-
-    def _signout_susurro_pro(self, _sender) -> None:
-        susurro_pro_clear_token()
-        # Fall back to local STT.
-        config.STT_BACKEND = "local"
-        config.POLISH_MODE = "smart"
-        self.transcriber = make_transcriber("local")
-        threading.Thread(target=self._warmup, daemon=True).start()
-        rumps.notification("Susurro", "Signed out", "Backend switched back to local.")
-
-    def _open_pro_dashboard(self, _sender) -> None:
-        subprocess.Popen(["open", f"{config.SUSURRO_PRO_WEB_URL}/dashboard"])
 
     def _open_mic_settings(self, _sender) -> None:
         permissions.open_microphone()
@@ -415,28 +351,21 @@ def main() -> None:
         print(f"Susurro v{susurro.__version__}")
         return
     if len(sys.argv) > 1 and sys.argv[1] in ("--help", "-h"):
-        print(f"""Susurro v{susurro.__version__} — voice dictation for macOS
+        print(f"""Susurro v{susurro.__version__} — local voice dictation for macOS
 
 Usage:
     susurro              Launch the menu bar daemon
     susurro --version    Print version
     susurro --help       Print this message
 
-Configuration:
-    SUSURRO_GROQ_API_KEY      Required for the default cloud STT + polish backend.
-                              Get one at https://console.groq.com/keys
-    SUSURRO_ANTHROPIC_API_KEY  Optional, for future Anthropic backend.
-    SUSURRO_OPENAI_API_KEY     Optional, for future OpenAI backend.
+Susurro runs fully offline. STT (Whisper) and polish (Llama 3.2 3B) both
+execute on-device via Apple's MLX framework. No accounts, no network.
 
-Per-stage backend selection in susurro/config.py:
-    STT_BACKEND       "groq" (default) or "local"
-    POLISH_BACKEND    "groq" (default)
-    POLISH_MODE       "smart" (default) | "rules" | "off"
+For cloud-extended dictation (lower latency, no local RAM), see Susurro Pro
+at https://susurro.live.
 
 Logs: ~/.susurro/susurro.log
 Polish events: ~/.susurro/polish.jsonl
-
-Project: https://github.com/danilobrando/susurro
 """)
         return
     setup_logging()

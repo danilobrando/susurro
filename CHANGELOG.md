@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-23
+
+### Changed
+
+- **Split into two products.** This package (`susurro` on PyPI) is now the OSS local-only Mac client. The cloud-extended product (`susurro-pro`) lives in a separate private repo, depends on this package, and adds hosted transcription via api.susurro.live. Same hotkey, same UX — different backend.
+- Default `STT_BACKEND` = `local` (was `groq`).
+- Default `POLISH_BACKEND` = `local` (was `groq`).
+- Removed `openai` and `httpx` dependencies (no more cloud calls from OSS).
+- Default `LOCAL_STT_MODEL` switched from `whisper-large-v3-mlx` to `whisper-large-v3-turbo` for ~6x faster decode.
+
+### Removed
+
+- `susurro/backends/susurro_pro.py` — moved to the susurro-pro package.
+- `susurro/backends/groq.py` — moved to the susurro-pro package.
+- `susurro/backends/audio_io.py` and `credentials.py` — used only by cloud backends, moved with them.
+- `api/` directory — FastAPI backend moved to the susurro-pro repo.
+- `docs/` directory — landing page moved to susurro-pro/landing/.
+- Root-level `Dockerfile`, `Caddyfile`, `railway.json` — Pro-only.
+- "Sign in to Susurro Pro" menu items — Pro adds these via `_extra_menu_items()` override.
+
+### Added
+
+- `susurro.backends.register_transcriber()` and `register_polish_llm()` — public extension points so external packages can add backends without forking.
+- `SusurroApp._build_menu()` and `_extra_menu_items()` — hook points so subclasses can extend the menu cleanly.
+- `available_transcribers()` / `available_polish_llms()` helpers.
+- Published to PyPI as `susurro`.
+
 ## [0.2.0] — 2026-05-22
 
 ### Added

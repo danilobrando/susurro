@@ -1,9 +1,0 @@
-# Keep the Railway image small — only ship Caddy + the landing.
-# Everything is excluded, then we whitelist what the Dockerfile needs.
-
-*
-
-!Caddyfile
-!Dockerfile
-!docs
-!docs/**
