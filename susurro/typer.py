@@ -31,20 +31,22 @@ def _read_clipboard() -> str:
 
 
 def paste_text(text: str) -> None:
-    """Put text on the clipboard and issue Cmd+V into the focused app."""
+    """Put text on the clipboard and issue Cmd+V into the focused app.
+
+    If macOS Accessibility is not granted to this process, the Cmd+V synthesis
+    silently fails — pynput can't raise on that. To make degraded mode survivable,
+    we leave the transcribed text on the clipboard so the user can press Cmd+V
+    manually. The previous clipboard contents are NOT restored — losing them is
+    the lesser evil compared to losing the dictated text.
+    """
     if not text:
         return
-    prev = _read_clipboard()
     _set_clipboard(text)
-    # Tiny delay so the system clipboard server actually swaps before the paste fires.
+    # Tiny delay so the system clipboard server swaps before the paste fires.
     time.sleep(0.03)
     with _kb.pressed(Key.cmd):
         _kb.press("v")
         _kb.release("v")
-    # Restore the previous clipboard after a beat so the user doesn't lose what they had.
-    time.sleep(0.15)
-    if prev:
-        _set_clipboard(prev)
 
 
 def type_text(text: str) -> None:
