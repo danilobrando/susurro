@@ -15,10 +15,10 @@ import re
 _FILLERS = [
     r"eh+",
     r"ah+",
-    r"mmm+",
+    r"mm+",  # was 'mmm+' — also catches the common single-m 'mm'
     r"hmm+",
-    r"uhh+",
-    r"umm+",
+    r"uh+",  # was 'uhh+' — also catches single-h 'uh'
+    r"um+",  # was 'umm+' — also catches single-m 'um' (the common English filler)
     r"este pues",
     r"o sea sí",
 ]

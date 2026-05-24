@@ -377,6 +377,11 @@ Polish events: ~/.susurro/polish.jsonl
         config.POLISH_BACKEND,
     )
     config.LOG_FILE.touch(exist_ok=True)
+    # Trigger the macOS Accessibility prompt on first launch so the bundle
+    # gets added to System Settings → Privacy & Security → Accessibility
+    # without the user having to drag-and-drop the .app there manually.
+    # No-op (returns True silently) when permission was already granted.
+    permissions.request_accessibility(prompt=True)
     app = SusurroApp()
     app.hotkey = HotkeyListener(on_press=app.on_hotkey_press, on_release=app.on_hotkey_release)
     app.hotkey.start()
