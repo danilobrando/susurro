@@ -52,3 +52,25 @@ def request_accessibility(prompt: bool = True) -> bool:
     trusted = bool(AXIsProcessTrustedWithOptions(options))
     logger.info("Accessibility trust check: %s (prompted=%s)", trusted, prompt)
     return trusted
+
+
+def request_microphone() -> None:
+    """Trigger the native macOS microphone permission dialog.
+
+    macOS Microphone settings has no '+' button — apps only appear in the list
+    after they've requested access via AVCaptureDevice. Calling this synthesizes
+    that request so the OS shows the standard 'X wants to access the microphone'
+    popup. After the user clicks Allow, the bundle appears in System Settings
+    with the toggle ON.
+    """
+    try:
+        from AVFoundation import AVCaptureDevice
+    except ImportError:
+        logger.debug("AVFoundation not available; skipping microphone request")
+        return
+    # "soun" = AVMediaTypeAudio 4-char code. The completion handler is required
+    # by the API but we don't need to react to the result — the wizard polls
+    # status separately.
+    AVCaptureDevice.requestAccessForMediaType_completionHandler_(
+        "soun", lambda granted: logger.info("microphone access result: %s", granted)
+    )
