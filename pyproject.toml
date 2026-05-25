@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "susurro"
-version = "0.4.0"
+version = "0.4.1"
 description = "Local voice dictation for macOS. Whisper + Llama 3.2 3B run on-device via Apple's MLX framework. No accounts, no API keys, no network."
 readme = "README.md"
 license = "MIT"
